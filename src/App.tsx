@@ -131,6 +131,39 @@ export default function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isCrawling, setIsCrawling] = useState(false);
+  const [analyzingLink, setAnalyzingLink] = useState<number | null>(null);
+
+  const handleAnalyzeLink = async (url: string, index: number) => {
+    if (!url) return;
+    setAnalyzingLink(index);
+    try {
+      const res = await fetch(`/api/analyze-product?url=${encodeURIComponent(url)}`);
+      if (!res.ok) throw new Error("Analysis failed");
+      const data = await res.json();
+      
+      if (index === -1) {
+        setFormData(prev => ({
+          ...prev,
+          name: data.name || prev.name,
+          price: data.price || prev.price,
+          shippingFee: data.shippingFee || prev.shippingFee
+        }));
+      } else {
+        const newComps = [...formData.competitors];
+        newComps[index] = {
+          ...newComps[index],
+          name: data.seller || data.name || newComps[index].name,
+          price: data.price || newComps[index].price,
+          shippingFee: data.shippingFee || newComps[index].shippingFee
+        };
+        setFormData(prev => ({ ...prev, competitors: newComps as any }));
+      }
+    } catch (err) {
+      console.error("Link analysis error:", err);
+    } finally {
+      setAnalyzingLink(null);
+    }
+  };
 
   // Fetch products on mount
   useEffect(() => {

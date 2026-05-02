@@ -175,6 +175,18 @@ async function startServer() {
     }
   });
 
+  app.get("/api/analyze-product", async (req, res) => {
+    const url = req.query.url as string;
+    if (!url) return res.status(400).json({ error: "URL is required" });
+    
+    const info = await extractProductInfo(url);
+    if (info) {
+      res.json(info);
+    } else {
+      res.status(500).json({ error: "Failed to extract info" });
+    }
+  });
+
   // Products API
   app.get("/api/products", async (req, res) => {
     const products = await getProducts();
