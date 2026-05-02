@@ -652,18 +652,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 uppercase ml-1">제품 링크</label>
-                    <input 
-                      name="productLink" 
-                      required 
-                      value={formData.productLink}
-                      onChange={(e) => setFormData({...formData, productLink: e.target.value})}
-                      className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-indigo-100 transition-all" 
-                      placeholder="https://..." 
-                    />
-                  </div>
-
                   <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-50 space-y-4">
                     <p className="text-xs font-bold text-indigo-600 uppercase ml-1">ES리빙 정보</p>
                     <div className="grid grid-cols-2 gap-4">
@@ -690,6 +678,27 @@ export default function App() {
                           className="w-full bg-white border-none rounded-xl px-4 py-3 text-sm font-bold shadow-sm focus:ring-2 focus:ring-indigo-200 transition-all" 
                           placeholder="0" 
                         />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">제품 링크</label>
+                      <div className="flex space-x-2">
+                        <input 
+                          name="productLink" 
+                          required 
+                          value={formData.productLink}
+                          onChange={(e) => setFormData({...formData, productLink: e.target.value})}
+                          className="flex-1 bg-white border-none rounded-xl px-4 py-3 text-sm font-bold shadow-sm focus:ring-2 focus:ring-indigo-200 transition-all" 
+                          placeholder="https://..." 
+                        />
+                        <button 
+                          type="button"
+                          onClick={() => handleAnalyzeLink(formData.productLink, -1)}
+                          disabled={analyzingLink === -1}
+                          className="bg-indigo-100 text-indigo-600 p-3 rounded-xl hover:bg-indigo-200 transition-all disabled:opacity-50"
+                        >
+                          {analyzingLink === -1 ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                        </button>
                       </div>
                     </div>
                   </div>
