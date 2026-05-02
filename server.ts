@@ -4,33 +4,44 @@ import path from "path";
 import { fileURLToPath } from "url";
 import axios from "axios";
 import * as cheerio from "cheerio";
-import fs from "fs-extra";
 import cron from "node-cron";
 import { GoogleGenAI, Type } from "@google/genai";
+import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 
 dotenv.config();
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
-const PRODUCTS_FILE = path.join(process.cwd(), "products.json");
+const supabase = createClient(
+  process.env.SUPABASE_URL || "",
+  process.env.SUPABASE_KEY || ""
+);
 
 async function getProducts() {
   try {
-    if (await fs.pathExists(PRODUCTS_FILE)) {
-      return await fs.readJson(PRODUCTS_FILE);
-    }
-    return [];
+    const { data, error } = await supabase
+      .from('products')
+      .select('data')
+      .eq('id', 1)
+      .single();
+    
+    if (error || !data) return [];
+    return data.data;
   } catch (err) {
-    console.error("Error reading products:", err);
+    console.error("Error reading products from Supabase:", err);
     return [];
   }
 }
 
 async function saveProducts(products: any) {
   try {
-    await fs.writeJson(PRODUCTS_FILE, products, { spaces: 2 });
+    const { error } = await supabase
+      .from('products')
+      .upsert({ id: 1, data: products });
+    
+    if (error) console.error("Supabase Save Error:", error);
   } catch (err) {
-    console.error("Error saving products:", err);
+    console.error("Error saving products to Supabase:", err);
   }
 }
 
