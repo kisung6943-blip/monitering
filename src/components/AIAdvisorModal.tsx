@@ -25,37 +25,100 @@ export const AIAdvisorModal: React.FC<AIAdvisorModalProps> = ({
     setLoading(true);
     setErrorMsg(null);
 
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem("gemini_api_key") || "";
+    if (!apiKey) {
+      setErrorMsg("API 키가 설정되지 않았습니다. 상단 AI 가격 분석 폼에서 톱니바퀴 버튼을 눌러 API 키를 먼저 입력해주세요.");
+      setLoading(false);
+      return;
+    }
+
+    const prompt = `
+당신은 한국 쿠팡 로켓배송(Rocket Delivery) / 벤더중앙 정산 및 마진 분석 전문 AI 컨설턴트입니다.
+사용자가 제공한 쿠팡 발주 정산 데이터를 분석하여 실용적이고 구체적인 인사이트 리포트를 작성해주세요.
+
+[전체 정산 요약]
+- 총 발주 건수: ${summary.totalCount}건
+- 총 발주 수량: ${summary.totalOrderQty.toLocaleString()}개
+- 총 납품 수량: ${summary.totalDeliveredQty.toLocaleString()}개 (평균 납품률: ${summary.deliveryRate.toFixed(1)}%)
+- 총 매출액 (매입 합계): ${summary.totalGross.toLocaleString()}원
+- 총 제조원가: ${summary.totalCost.toLocaleString()}원
+- 총 판매 수수료: ${summary.totalCommission.toLocaleString()}원
+- 총 광고비: ${summary.totalAdCost.toLocaleString()}원
+- 총 기타/물류비: ${summary.totalOtherFee.toLocaleString()}원
+- 총 정산 수령액: ${summary.totalSettlement.toLocaleString()}원
+- 최종 순이익: ${summary.totalNetProfit.toLocaleString()}원
+- 평균 순이익률: ${summary.netMargin.toFixed(1)}%
+
+[세부 정산 내역 샘플 (최대 10건)]
+${JSON.stringify(
+  settlements.slice(0, 10).map((s) => ({
+    poNumber: s.poNumber,
+    poDate: s.poDate,
+    productName: s.productName,
+    category: s.category,
+    orderQty: s.orderQty,
+    deliveredQty: s.deliveredQty,
+    supplyPrice: s.supplyPrice,
+    unitCost: s.unitCost,
+    commissionRate: s.commissionRate,
+    grossAmount: s.grossAmount,
+    adCost: s.adCost,
+    otherFee: s.otherFee,
+    netProfit: s.netProfit,
+    netMargin: s.netMargin,
+  })),
+  null,
+  2
+)}
+
+다음 형식의 JSON 응답만 반환해주세요 (마크다운 포맷이나 다른 텍스트 없이 pure JSON):
+{
+  "overallEvaluation": "전체 수익성에 대한 종합 평가 2~3문장",
+  "marginHealth": "양호" | "주의" | "위험",
+  "keyTakeaways": [
+    "핵심 분석 포인트 1",
+    "핵심 분석 포인트 2",
+    "핵심 분석 포인트 3"
+  ],
+  "productAdvice": [
+    {
+      "productName": "상품명",
+      "issueOrHighlight": "문제점 또는 강점 요약",
+      "actionRecommendation": "권장 실행 조치 (예: 광고비 % 줄이기, 매입가 재협상, 납품률 개선 등)"
+    }
+  ],
+  "adSpendOptimization": "광고비 관련 구체적 조언 (광고비 비중 분석 및 적정 ROAS / 광고예산 추천)",
+  "rocketDeliveryTip": "쿠팡 로켓배송 정산/발주 관련 실전 팁 (밀크런 운임, 입고 지연 방지, 카테고리 수수료 등)"
+}
+`;
+
     try {
-      const res = await fetch('/api/ai-analysis', {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          summary,
-          settlements: settlements.map((s) => ({
-            poNumber: s.poNumber,
-            poDate: s.poDate,
-            productName: s.productName,
-            category: s.category,
-            orderQty: s.orderQty,
-            deliveredQty: s.deliveredQty,
-            supplyPrice: s.supplyPrice,
-            unitCost: s.unitCost,
-            commissionRate: s.commissionRate,
-            grossAmount: s.grossAmount,
-            adCost: s.adCost,
-            otherFee: s.otherFee,
-            netProfit: s.netProfit,
-            netMargin: s.netMargin,
-          })),
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { responseMimeType: "application/json" }
         }),
       });
 
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'AI 분석 응답을 불러오지 못했습니다.');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || 'AI 분석 응답을 불러오지 못했습니다.');
       }
 
-      setResult(data.analysis);
+      const rawData = await res.json();
+      const generatedText = rawData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      
+      let analysis;
+      try {
+        const cleanedText = generatedText.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+        analysis = JSON.parse(cleanedText);
+      } catch (parseErr) {
+        throw new Error('AI가 응답한 데이터를 분석할 수 없습니다.');
+      }
+
+      setResult(analysis);
     } catch (err: any) {
       console.error('AI Analysis failed:', err);
       setErrorMsg(err.message || 'AI 진단 중 오류가 발생했습니다.');
