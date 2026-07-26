@@ -1,224 +1,122 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import path from "path";
-import { fileURLToPath } from "url";
-import axios from "axios";
-import * as cheerio from "cheerio";
-import cron from "node-cron";
+import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
-import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
-const supabase = createClient(
-  process.env.SUPABASE_URL || "",
-  process.env.SUPABASE_KEY || ""
-);
+// Lazy initialization of Gemini AI to prevent startup crashes if key is missing
+let aiClient: GoogleGenAI | null = null;
 
-async function getProducts() {
-  try {
-    const { data, error } = await supabase
-      .from('products')
-      .select('data')
-      .eq('id', 1)
-      .single();
-    
-    if (error || !data) return [];
-    return data.data;
-  } catch (err) {
-    console.error("Error reading products from Supabase:", err);
-    return [];
-  }
-}
-
-async function saveProducts(products: any) {
-  try {
-    const { error } = await supabase
-      .from('products')
-      .upsert({ id: 1, data: products });
-    
-    if (error) console.error("Supabase Save Error:", error);
-  } catch (err) {
-    console.error("Error saving products to Supabase:", err);
-  }
-}
-
-async function extractProductInfo(url: string) {
-  try {
-    const response = await axios.get(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+function getGeminiClient(): GoogleGenAI {
+  if (!aiClient) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY environment variable is required to parse price details with AI.");
+    }
+    aiClient = new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        headers: {
+          "User-Agent": "aistudio-build",
+        },
       },
-      timeout: 15000
     });
-
-    const $ = cheerio.load(response.data);
-    $("script, style, iframe, noscript, footer, nav, header").remove();
-    const text = $("body").text().replace(/\s+/g, " ").trim();
-    const meta = {
-      title: $("title").text(),
-      description: $('meta[name="description"]').attr("content"),
-      ogTitle: $('meta[property="og:title"]').attr("content"),
-    };
-
-    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const result = await model.generateContent({
-      contents: [{
-        role: "user",
-        parts: [{
-          text: `Extract product information from this webpage content and metadata.
-          Return the data in JSON format:
-          {
-            "name": "Product Name",
-            "seller": "Seller Name",
-            "price": number,
-            "shippingFee": number
-          }
-          
-          Webpage Metadata: ${JSON.stringify(meta)}
-          Webpage Content: ${text.substring(0, 15000)}`
-        }]
-      }],
-      generationConfig: {
-        responseMimeType: "application/json",
-      }
-    });
-
-    return JSON.parse(result.response.text());
-  } catch (err: any) {
-    console.error(`Extraction failed for ${url}:`, err.message);
-    return null;
   }
+  return aiClient;
 }
-
-async function runDailyCrawl() {
-  console.log("Starting daily crawl at", new Date().toLocaleString());
-  const products = await getProducts();
-  
-  for (const product of products) {
-    // Update main product price
-    if (product.productLink) {
-      const info = await extractProductInfo(product.productLink);
-      if (info) {
-        product.price = info.price || product.price;
-        product.shippingFee = info.shippingFee || product.shippingFee;
-      }
-    }
-
-    // Update competitors
-    if (product.competitors) {
-      for (const comp of product.competitors) {
-        if (comp.link) {
-          const info = await extractProductInfo(comp.link);
-          if (info) {
-            comp.price = info.price || comp.price;
-            comp.shippingFee = info.shippingFee || comp.shippingFee;
-            comp.name = info.seller || info.name || comp.name;
-          }
-        }
-      }
-    }
-    product.lastUpdated = "방금 전 (자동)";
-  }
-
-  await saveProducts(products);
-  console.log("Daily crawl completed at", new Date().toLocaleString());
-}
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = 5555;
 
-  app.use(express.json());
+  app.use(express.json({ limit: "10mb" }));
 
-  // API Route to fetch and clean URL content
-  app.get("/api/fetch-url", async (req, res) => {
-    const url = req.query.url as string;
-    if (!url) {
-      return res.status(400).json({ error: "URL is required" });
-    }
-
+  // API Route: Parse copied text using Gemini AI
+  app.post("/api/parse-price", async (req, res) => {
     try {
-      // Set a generic User-Agent to avoid blocks
-      const response = await axios.get(url, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        },
-        timeout: 10000
+      const { text } = req.body;
+      if (!text || typeof text !== "string") {
+        return res.status(400).json({ error: "텍스트 내용이 올바르지 않습니다." });
+      }
+
+      const ai = getGeminiClient();
+      const response = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: `You are an expert price auditor. Analyze the following raw copied text from a Korean e-commerce site (Naver Shopping or Coupang). 
+Extract the primary selling price, shipping fee, seller name, product name, and the platform.
+
+Here is the raw text to analyze:
+"""
+${text}
+"""`,
+        config: {
+          systemInstruction: "You strictly extract price details. Identify prices, shipping costs, and seller names from text snippets, handles, or option details. Be precise. If price has discount, extract the final price the customer pays.",
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              platform: {
+                type: Type.STRING,
+                description: "Platform name: 'naver', 'coupang', or 'unknown'."
+              },
+              price: {
+                type: Type.INTEGER,
+                description: "The main selling price of the product as integer (e.g. 5890). Extract 0 if not found."
+              },
+              shipping: {
+                type: Type.INTEGER,
+                description: "The shipping fee as integer (e.g. 3000). If free or 0, return 0."
+              },
+              seller: {
+                type: Type.STRING,
+                description: "The store or seller name (e.g. '휘슬러as', '세계명품', '쿠팡')."
+              },
+              productName: {
+                type: Type.STRING,
+                description: "The extracted product name or key terms."
+              }
+            },
+            required: ["platform", "price", "shipping", "seller", "productName"]
+          }
+        }
       });
 
-      const $ = cheerio.load(response.data);
-      
-      // Remove scripts, styles, and other noise
-      $("script, style, iframe, noscript, footer, nav, header").remove();
-      
-      // Get the body text and clean it up
-      const text = $("body").text().replace(/\s+/g, " ").trim();
-      
-      // Also get meta tags which often contain useful info
-      const meta = {
-        title: $("title").text(),
-        description: $('meta[name="description"]').attr("content"),
-        ogTitle: $('meta[property="og:title"]').attr("content"),
-        ogDescription: $('meta[property="og:description"]').attr("content"),
-      };
+      const parsedText = response.text;
+      if (!parsedText) {
+        return res.status(500).json({ error: "AI가 데이터를 파싱하지 못했습니다." });
+      }
 
-      res.json({ text: text.substring(0, 10000), meta }); // Limit text for tokens
+      const result = JSON.parse(parsedText.trim());
+      return res.json({ success: true, ...result });
+
     } catch (error: any) {
-      console.error("Error fetching URL:", error.message);
-      res.status(500).json({ error: "Failed to fetch URL content" });
+      console.error("AI Price Parse Error:", error);
+      return res.status(500).json({ 
+        error: error.message || "서버 통신 중 오류가 발생했습니다." 
+      });
     }
   });
-
-  app.get("/api/analyze-product", async (req, res) => {
-    const url = req.query.url as string;
-    if (!url) return res.status(400).json({ error: "URL is required" });
-    
-    const info = await extractProductInfo(url);
-    if (info) {
-      res.json(info);
-    } else {
-      res.status(500).json({ error: "Failed to extract info" });
-    }
-  });
-
-  // Products API
-  app.get("/api/products", async (req, res) => {
-    const products = await getProducts();
-    res.json(products);
-  });
-
-  app.post("/api/products", async (req, res) => {
-    await saveProducts(req.body);
-    res.json({ success: true });
-  });
-
-  app.post("/api/crawl-all", async (req, res) => {
-    runDailyCrawl(); // Run in background
-    res.json({ message: "Crawl started in background" });
-  });
-
-  // Setup Cron Job: 10 PM every day
-  cron.schedule("0 22 * * *", () => {
-    runDailyCrawl();
-  }, {
-    timezone: "Asia/Seoul"
-  });
-
-  console.log("Cron job registered for 22:00 (Asia/Seoul)");
 
   if (process.env.NODE_ENV !== "production") {
+    console.log("Starting server in DEVELOPMENT mode with Vite Middleware...");
+    
+    // Add aggressive cache busting headers
+    app.use((req, res, next) => {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      next();
+    });
+
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
   } else {
+    console.log("Starting server in PRODUCTION mode...");
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
@@ -227,8 +125,10 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
   });
 }
 
-startServer();
+startServer().catch((err) => {
+  console.error("Failed to start server:", err);
+});
