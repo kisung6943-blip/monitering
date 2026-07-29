@@ -78,7 +78,8 @@ Start counting Rank 1 from the FIRST organic (non-ad) product.
 2. IMPORTANT: This seller might have MULTIPLE DIFFERENT products on the same search page. You MUST ensure that the product you select is semantically the EXACT SAME type of product as the Target Product Name ("${queryContext}").
 - For example, if Target Product Name is "원목 도마거치대" (Wooden), do NOT match a "스텐 도마거치대" (Stainless) from the same seller.
 - If you find multiple products from this seller, pick the one whose title best matches the core meaning and key materials/features of "${queryContext}".
-3. If the seller name is completely hidden/missing (e.g., on Coupang), rely entirely on finding the best semantic match for "${queryContext}".
+3. CATALOG HANDLING (PRICE COMPARISON): In Naver Shopping, products are often grouped into a "Price Comparison Catalog" (가격비교 매칭). If you see a catalog block, look at the sellers listed inside it ("쇼핑몰별 최저가"). If the Target Seller Name is one of those sellers, and the catalog title semantically matches the Target Product Name, count that ENTIRE CATALOG as the rank!
+4. If the seller name is completely hidden/missing (e.g., on Coupang), rely entirely on finding the best semantic match for "${queryContext}".
 
 [SPEED OPTIMIZATION - CRITICAL]
 To make your response lightning fast, your "reasoning" field MUST be extremely short. DO NOT write out product names or full sentences.
