@@ -29,7 +29,7 @@ function getGeminiClient(): GoogleGenAI {
 
 async function startServer() {
   const app = express();
-  const PORT = 5555;
+  const PORT = 5173;
 
   app.use(express.json({ limit: "10mb" }));
 

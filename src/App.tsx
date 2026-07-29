@@ -100,7 +100,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
   "ranks": string (e.g. "3" or "3, 12" or "-")
 }`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey.trim()}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -111,7 +111,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || "AI 서버와의 통신에 실패했습니다.");
+        throw new Error((errorData.error?.message || "AI 분석 서버(Google)와의 통신에 실패했습니다.") + ` (입력된키: ${apiKey.substring(0, 8)}...)`);
       }
 
       const rawData = await response.json();
@@ -578,7 +578,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
         });
       }
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey.trim()}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -589,7 +589,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || "AI 분석 서버(Google)와의 통신에 실패했습니다.");
+        throw new Error((errorData.error?.message || "AI 분석 서버(Google)와의 통신에 실패했습니다.") + ` (입력된키: ${apiKey.substring(0, 10)}...)`);
       }
 
       const rawData = await response.json();
