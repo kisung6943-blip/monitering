@@ -990,7 +990,25 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                             
                             {/* Name */}
                             <td className="py-3 px-3">
-                              <div className="font-medium text-slate-900 line-clamp-1">{item.name}</div>
+                              <input
+                                key={`name-${item.id}-${item.name}`}
+                                type="text"
+                                defaultValue={item.name}
+                                onClick={(e) => e.stopPropagation()}
+                                onBlur={(e) => {
+                                  const newName = e.target.value.trim();
+                                  if (newName && newName !== item.name) {
+                                    const updatedProducts = products.map(p => p.id === item.id ? { ...p, name: newName } : p);
+                                    saveToLocalStorage(updatedProducts, priceLogs);
+                                    showToast(`품목 이름이 '${newName}'(으)로 변경되었습니다.`);
+                                  } else if (!newName) {
+                                    e.target.value = item.name; // reset if empty
+                                  }
+                                }}
+                                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                                className="font-medium text-slate-900 w-full bg-transparent outline-none border-b border-transparent hover:border-slate-300 focus:border-amber-500 transition-colors cursor-text line-clamp-1"
+                                title="클릭해서 품목 이름 수정"
+                              />
                               <div className="flex gap-2 mt-0.5 transition-opacity items-center">
                                 {item.naverUrl && (
                                   <a 
@@ -1896,7 +1914,24 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                         <div className="flex items-center gap-3">
                           <span className="text-xs text-slate-400 w-5 text-center font-bold">{idx + 1}</span>
                           <div>
-                            <span className="text-xs font-semibold text-slate-900">{p.name}</span>
+                            <input
+                              key={`modal-name-${p.id}-${p.name}`}
+                              type="text"
+                              defaultValue={p.name}
+                              onBlur={(e) => {
+                                const newName = e.target.value.trim();
+                                if (newName && newName !== p.name) {
+                                  const updatedProducts = products.map(prod => prod.id === p.id ? { ...prod, name: newName } : prod);
+                                  saveToLocalStorage(updatedProducts, priceLogs);
+                                  showToast(`품목 이름이 변경되었습니다.`);
+                                } else if (!newName) {
+                                  e.target.value = p.name;
+                                }
+                              }}
+                              onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                              className="text-xs font-semibold text-slate-900 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-amber-500 outline-none w-full max-w-[200px] transition-colors"
+                              title="클릭해서 품목 이름 수정"
+                            />
                             <div className="flex gap-2.5 mt-0.5 text-[10px] text-slate-400">
                               <span>네이버 URL: {p.naverUrl ? "등록됨" : "미등록"}</span>
                               <span>•</span>
