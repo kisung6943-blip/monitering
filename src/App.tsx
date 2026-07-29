@@ -51,7 +51,7 @@ export default function App() {
     
     setIsKeywordAiParsing(true);
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || localApiKey;
+      const apiKey = localApiKey || import.meta.env.VITE_GEMINI_API_KEY;
       if (!apiKey) {
         throw new Error("API 키가 없습니다. 상단의 AI 가격 분석 폼에서 톱니바퀴 버튼을 눌러 API 키를 먼저 입력해주세요.");
       }
@@ -536,7 +536,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
     setAiParseError(null);
 
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || localApiKey;
+      const apiKey = localApiKey || import.meta.env.VITE_GEMINI_API_KEY;
       if (!apiKey) {
         setShowApiKeyInput(true);
         throw new Error("API 키가 설정되지 않았습니다. 톱니바퀴 버튼을 눌러 API 키를 직접 입력해주세요.");
