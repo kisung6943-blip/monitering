@@ -120,13 +120,21 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
         throw new Error("AI 응답을 분석할 수 없습니다.");
       }
 
-      if (data.ranks) {
+      if (data.ranks && data.ranks !== "-") {
         if (platform === 'naver') {
           handleKeywordRankChange(selectedProductId, index, data.ranks);
         } else {
           handleCoupangKeywordRankChange(selectedProductId, index, data.ranks);
         }
         showToast(`✅ [${keyword}] ${platform === 'naver' ? '네이버' : '쿠팡'} 순위(${data.ranks})가 자동 입력되었습니다!`);
+      } else {
+        if (platform === 'naver') {
+          handleKeywordRankChange(selectedProductId, index, "-");
+        } else {
+          handleCoupangKeywordRankChange(selectedProductId, index, "-");
+        }
+        showToast(`⚠️ 순위를 찾지 못했습니다. (AI 분석결과: ${data.reasoning})`, "error");
+        console.log("AI REASONING:", data.reasoning);
       }
     } catch (error: any) {
       showToast(`⚠️ 순위 분석 에러: ${error.message}`);
