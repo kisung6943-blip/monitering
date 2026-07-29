@@ -74,9 +74,8 @@ You MUST completely IGNORE any product blocks that contain these ad labels. Do n
 Start counting Rank 1 from the FIRST organic (non-ad) product.
 
 [CRITICAL MATCHING INSTRUCTION]
-You must look for an item that is semantically the same product as the Target Product Name. 
-If the Seller/Store Name is visible in the text block, it MUST match the Target Seller Name. 
-HOWEVER, on platforms like Coupang, the seller name might not be shown in the search results. If the seller name is completely missing, you can match based on the Target Product Name alone.
+1. Your PRIMARY matching criteria is the Target Seller Name ("${myStoreName}"). If you see this exact seller name attached to a product, consider it a MATCH immediately. E-commerce product titles are often very long and stuffed with keywords, so do NOT reject it just because the title ("${queryContext}") looks shorter or slightly different. If the seller matches, it is the product!
+2. ONLY if the seller name is completely hidden/missing (e.g., on some Coupang results), you should fall back to matching based on whether the product title is semantically similar to the Target Product Name.
 
 [SPEED OPTIMIZATION - CRITICAL]
 To make your response lightning fast, your "reasoning" field MUST be extremely short. DO NOT write out product names or full sentences.
