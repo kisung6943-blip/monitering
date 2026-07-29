@@ -22,7 +22,10 @@ export default function App() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   
   // UI filter states
-  const [selectedDate, setSelectedDate] = useState<string>("2026-07-10");
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("all"); // all, naver_cheaper, coupang_cheaper, same, no_coupang
   
