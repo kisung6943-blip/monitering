@@ -1143,27 +1143,33 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                             <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg overflow-hidden focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 transition-all shadow-xs">
                               <span className="bg-slate-200/70 text-slate-500 font-bold px-3 py-2.5 text-sm border-r border-slate-200">{i+1}</span>
                               <input 
+                                key={`n-kw-${selectedProductId}-${i}`}
                                 type="text" 
                                 placeholder="키워드 입력"
-                                value={keywordName}
-                                onChange={(e) => handleKeywordNameChange(selectedProductId, i, e.target.value)}
+                                defaultValue={keywordName}
+                                onBlur={(e) => handleKeywordNameChange(selectedProductId, i, e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
                                 className="w-full text-sm px-2 py-2.5 outline-none text-slate-800 font-medium bg-transparent placeholder-slate-400"
                               />
                               <div className="w-px h-6 bg-slate-200 shrink-0"></div>
                               <input 
+                                key={`n-vol-${selectedProductId}-${i}`}
                                 type="text" 
                                 placeholder="검색량"
-                                value={selectedProduct?.keywordVolumes?.[i] || ""}
-                                onChange={(e) => handleKeywordVolumeChange(selectedProductId, i, e.target.value)}
+                                defaultValue={selectedProduct?.keywordVolumes?.[i] || ""}
+                                onBlur={(e) => handleKeywordVolumeChange(selectedProductId, i, e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
                                 className="w-14 text-[11px] px-1 py-2.5 outline-none text-slate-500 font-medium text-center shrink-0 placeholder-slate-300 bg-transparent"
                                 title="월간 검색량"
                               />
                               <div className="w-px h-6 bg-slate-200 shrink-0"></div>
                               <input 
+                                key={`n-rank-${selectedProductId}-${i}`}
                                 type="text" 
                                 placeholder="순위"
-                                value={keywordRank}
-                                onChange={(e) => handleKeywordRankChange(selectedProductId, i, e.target.value)}
+                                defaultValue={keywordRank}
+                                onBlur={(e) => handleKeywordRankChange(selectedProductId, i, e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
                                 className="w-12 text-sm px-1 py-2.5 outline-none text-emerald-600 font-bold text-center shrink-0 placeholder-slate-300 bg-transparent"
                               />
                               <button 
@@ -1222,27 +1228,33 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                             <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg overflow-hidden focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all shadow-xs">
                               <span className="bg-slate-200/70 text-slate-500 font-bold px-3 py-2.5 text-sm border-r border-slate-200">{i+1}</span>
                               <input 
+                                key={`c-kw-${selectedProductId}-${i}`}
                                 type="text" 
                                 placeholder="키워드 입력"
-                                value={keywordName}
-                                onChange={(e) => handleKeywordNameChange(selectedProductId, i, e.target.value)}
+                                defaultValue={keywordName}
+                                onBlur={(e) => handleKeywordNameChange(selectedProductId, i, e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
                                 className="w-full text-sm px-2 py-2.5 outline-none text-slate-800 font-medium bg-transparent placeholder-slate-400"
                               />
                               <div className="w-px h-6 bg-slate-200 shrink-0"></div>
                               <input 
+                                key={`c-vol-${selectedProductId}-${i}`}
                                 type="text" 
                                 placeholder="검색량"
-                                value={selectedProduct?.keywordVolumes?.[i] || ""}
-                                onChange={(e) => handleKeywordVolumeChange(selectedProductId, i, e.target.value)}
+                                defaultValue={selectedProduct?.keywordVolumes?.[i] || ""}
+                                onBlur={(e) => handleKeywordVolumeChange(selectedProductId, i, e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
                                 className="w-14 text-[11px] px-1 py-2.5 outline-none text-slate-500 font-medium text-center shrink-0 placeholder-slate-300 bg-transparent"
                                 title="월간 검색량"
                               />
                               <div className="w-px h-6 bg-slate-200 shrink-0"></div>
                               <input 
+                                key={`c-rank-${selectedProductId}-${i}`}
                                 type="text" 
                                 placeholder="순위"
-                                value={keywordRankCoupang}
-                                onChange={(e) => handleCoupangKeywordRankChange(selectedProductId, i, e.target.value)}
+                                defaultValue={keywordRankCoupang}
+                                onBlur={(e) => handleCoupangKeywordRankChange(selectedProductId, i, e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
                                 className="w-12 text-sm px-1 py-2.5 outline-none text-blue-600 font-bold text-center shrink-0 placeholder-slate-300 bg-transparent"
                               />
                               <button 
