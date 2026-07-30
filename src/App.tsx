@@ -986,7 +986,11 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                                     e.target.value = item.name; // reset if empty
                                   }
                                 }}
-                                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                                    e.currentTarget.blur();
+                                  }
+                                }}
                                 className="font-medium text-slate-900 w-full bg-transparent outline-none border-b border-transparent hover:border-slate-300 focus:border-amber-500 transition-colors cursor-text"
                                 title="클릭해서 품목 이름 수정"
                               />
@@ -1151,8 +1155,12 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                                 placeholder="키워드 입력"
                                 defaultValue={keywordName}
                                 onBlur={(e) => handleKeywordNameChange(selectedProductId, i, e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-                                className="w-full text-sm px-2 py-2.5 outline-none text-slate-800 font-medium bg-transparent placeholder-slate-400"
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                                    e.currentTarget.blur();
+                                  }
+                                }}
+                                className="flex-1 min-w-[90px] text-sm px-2 py-2.5 outline-none text-slate-800 font-medium bg-transparent placeholder-slate-400"
                               />
                               <div className="w-px h-6 bg-slate-200 shrink-0"></div>
                               <input 
@@ -1161,7 +1169,11 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                                 placeholder="검색량"
                                 defaultValue={selectedProduct?.keywordVolumes?.[i] || ""}
                                 onBlur={(e) => handleKeywordVolumeChange(selectedProductId, i, e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                                    e.currentTarget.blur();
+                                  }
+                                }}
                                 className="w-14 text-[11px] px-1 py-2.5 outline-none text-slate-500 font-medium text-center shrink-0 placeholder-slate-300 bg-transparent"
                                 title="월간 검색량"
                               />
@@ -1172,7 +1184,11 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                                 placeholder="순위"
                                 defaultValue={keywordRank}
                                 onBlur={(e) => handleKeywordRankChange(selectedProductId, i, e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                                    e.currentTarget.blur();
+                                  }
+                                }}
                                 className="w-12 text-sm px-1 py-2.5 outline-none text-emerald-600 font-bold text-center shrink-0 placeholder-slate-300 bg-transparent"
                               />
                               <button 
@@ -1236,8 +1252,12 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                                 placeholder="키워드 입력"
                                 defaultValue={keywordName}
                                 onBlur={(e) => handleKeywordNameChange(selectedProductId, i, e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-                                className="w-full text-sm px-2 py-2.5 outline-none text-slate-800 font-medium bg-transparent placeholder-slate-400"
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                                    e.currentTarget.blur();
+                                  }
+                                }}
+                                className="flex-1 min-w-[90px] text-sm px-2 py-2.5 outline-none text-slate-800 font-medium bg-transparent placeholder-slate-400"
                               />
                               <div className="w-px h-6 bg-slate-200 shrink-0"></div>
                               <input 
@@ -1246,7 +1266,11 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                                 placeholder="검색량"
                                 defaultValue={selectedProduct?.keywordVolumes?.[i] || ""}
                                 onBlur={(e) => handleKeywordVolumeChange(selectedProductId, i, e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                                    e.currentTarget.blur();
+                                  }
+                                }}
                                 className="w-14 text-[11px] px-1 py-2.5 outline-none text-slate-500 font-medium text-center shrink-0 placeholder-slate-300 bg-transparent"
                                 title="월간 검색량"
                               />
@@ -1257,7 +1281,11 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                                 placeholder="순위"
                                 defaultValue={keywordRankCoupang}
                                 onBlur={(e) => handleCoupangKeywordRankChange(selectedProductId, i, e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                                    e.currentTarget.blur();
+                                  }
+                                }}
                                 className="w-12 text-sm px-1 py-2.5 outline-none text-blue-600 font-bold text-center shrink-0 placeholder-slate-300 bg-transparent"
                               />
                               <button 
@@ -1909,7 +1937,11 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                                   e.target.value = p.name;
                                 }
                               }}
-                              onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                                  e.currentTarget.blur();
+                                }
+                              }}
                               className="text-xs font-semibold text-slate-900 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-amber-500 outline-none w-full max-w-[200px] transition-colors"
                               title="클릭해서 품목 이름 수정"
                             />
