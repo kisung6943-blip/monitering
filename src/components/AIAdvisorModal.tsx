@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ComputedSettlement, SettlementSummary, AIAnalysisResult } from '../types';
 import { X, Sparkles, AlertTriangle, CheckCircle2, TrendingUp, HelpCircle, Loader2 } from 'lucide-react';
+import { callGeminiGenerateContent } from '../utils/geminiApi';
 
 interface AIAdvisorModalProps {
   isOpen: boolean;
@@ -93,21 +94,11 @@ ${JSON.stringify(
 `;
 
     try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { responseMimeType: "application/json" }
-        }),
+      const rawData = await callGeminiGenerateContent(apiKey, {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: "application/json" }
       });
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || 'AI 분석 응답을 불러오지 못했습니다.');
-      }
-
-      const rawData = await res.json();
       const generatedText = rawData.candidates?.[0]?.content?.parts?.[0]?.text || '';
       
       let analysis;
