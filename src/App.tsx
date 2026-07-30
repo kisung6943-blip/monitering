@@ -919,7 +919,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                 <thead>
                   <tr className="bg-slate-50 text-slate-400 font-medium border-b border-slate-100 text-[11px] uppercase tracking-wider">
                     <th className="py-2.5 px-3 text-center w-10">번호</th>
-                    <th className="py-2.5 px-3 min-w-[260px]">모니터링 품목</th>
+                    <th className="py-2.5 px-3 min-w-[380px]">모니터링 품목</th>
                     <th className="py-2.5 px-3 text-right bg-amber-50/50 text-amber-900 border-l border-slate-100 font-bold">네이버 판매가</th>
                     <th className="py-2.5 px-3 text-right bg-amber-50/50 text-amber-900">배송비</th>
                     <th className="py-2.5 px-3 text-right bg-amber-100/60 text-amber-950 font-bold border-r border-slate-100" style={{ backgroundColor: "#FFF2CC" }}>네이버 합계</th>
