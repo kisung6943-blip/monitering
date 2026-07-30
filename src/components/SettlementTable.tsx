@@ -219,10 +219,10 @@ export const SettlementTable: React.FC<SettlementTableProps> = ({
                   className="rounded border-slate-300 text-rose-600 focus:ring-rose-500 cursor-pointer"
                 />
               </th>
-              <th className="px-1.5 py-2 min-w-[85px]">발주일자</th>
-              <th className="px-1.5 py-2 min-w-[120px]">상품명</th>
-              <th className="px-1.5 py-2 text-right min-w-[50px]">발주수량</th>
-              <th className="px-1.5 py-2 text-right min-w-[50px]">납품수량</th>
+              <th className="px-1.5 py-2 min-w-[105px]">발주일자</th>
+              <th className="px-2 py-2 min-w-[260px]">상품명</th>
+              <th className="px-1.5 py-2 text-right min-w-[55px]">발주수량</th>
+              <th className="px-1.5 py-2 text-right min-w-[55px]">납품수량</th>
               <th className="px-1.5 py-2 text-right min-w-[75px]">매입가(단가)</th>
               <th className="px-1.5 py-2 text-right min-w-[85px]">합계금액(매출)</th>
               <th className="px-1.5 py-2 text-right min-w-[75px] bg-amber-50/50 dark:bg-amber-950/20 text-amber-900 dark:text-amber-300">
@@ -230,12 +230,12 @@ export const SettlementTable: React.FC<SettlementTableProps> = ({
               </th>
               <th className="px-1.5 py-2 text-right min-w-[75px]">제조원가</th>
               <th className="px-1.5 py-2 text-right min-w-[75px]">기타/물류비</th>
-              <th className="px-1.5 py-2 text-right min-w-[95px]">쿠팡 정산액</th>
+              <th className="px-1.5 py-2 text-right min-w-[90px]">쿠팡 정산액</th>
               <th className="px-1.5 py-2 text-right min-w-[95px] bg-emerald-50/50 dark:bg-emerald-950/20 font-bold text-emerald-900 dark:text-emerald-300">
                 순이익 (마진%)
               </th>
               <th className="px-1.5 py-2 text-center min-w-[75px]">상태</th>
-              <th className="px-1.5 py-2 text-center min-w-[70px]">관리</th>
+              <th className="px-1.5 py-2 text-center min-w-[65px]">관리</th>
             </tr>
           </thead>
 
@@ -403,24 +403,24 @@ const RowItem: React.FC<RowItemProps> = ({
           type="date"
           value={item.poDate}
           onChange={(e) => onUpdateInline(item.id, 'poDate', e.target.value)}
-          className="w-[95px] py-0.5 px-1 border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-[10px] focus:ring-1 focus:ring-rose-500"
+          className="w-[102px] py-0.5 px-1 border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs focus:ring-1 focus:ring-rose-500"
           title="발주일자 변경"
         />
       </td>
 
       {/* 상품명 */}
-      <td className="px-1.5 py-2">
-        <div className="flex items-center space-x-1">
+      <td className="px-2 py-2">
+        <div className="flex items-center space-x-1.5 w-full">
           <input
             type="text"
             value={item.productName}
             onChange={(e) => onUpdateInline(item.id, 'productName', e.target.value)}
-            className="flex-1 min-w-[100px] font-semibold py-0.5 px-1 border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-1 focus:ring-rose-500"
+            className="flex-1 min-w-[220px] font-semibold py-1 px-2 border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:ring-1 focus:ring-rose-500"
             title="상품명 변경"
           />
           {item.frequencyType && (
             <span
-              className={`text-[9px] px-1 py-0.2 rounded font-normal whitespace-nowrap ${
+              className={`text-[10px] px-1.5 py-0.5 rounded font-medium whitespace-nowrap shrink-0 ${
                 item.frequencyType === '주간정기'
                   ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
                   : 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300'
