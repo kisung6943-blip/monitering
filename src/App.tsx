@@ -60,6 +60,7 @@ export default function App() {
       const selectedProduct = products.find(p => p.id === selectedProductId);
       const keyword = selectedProduct?.keywords?.[index] || "";
       const queryContext = selectedProduct ? selectedProduct.name : "";
+      const targetPrice = platform === 'naver' ? (selectedProduct?.naverPrice || 0) : (selectedProduct?.coupangPrice || 0);
 
       const prompt = `You are an expert e-commerce rank auditor. 
 Analyze the provided raw search results text from a Korean e-commerce site.
@@ -68,6 +69,7 @@ The user wants to find the exact ORGANIC ranking of ONE SPECIFIC PRODUCT they ar
 [TARGET TO FIND]
 1. Target Seller/Store Name: "${myStoreName}"
 2. Target Product Name: "${queryContext}"
+3. Expected Product Price: ${targetPrice > 0 ? `around ${targetPrice.toLocaleString()}원` : 'Not specified'}
 
 [CRITICAL COUNTING RULES - IGNORE ADS]
 In Korean e-commerce, the first few items are usually Sponsored Ads (labeled as "광고" or "스폰서" or "파워링크" or "쇼핑검색광고").
@@ -76,11 +78,11 @@ Start counting Rank 1 from the FIRST organic (non-ad) product.
 
 [CRITICAL MATCHING INSTRUCTION]
 1. The Target Seller Name ("${myStoreName}") MUST match (if visible).
-2. IMPORTANT: This seller might have MULTIPLE DIFFERENT products on the same search page. You MUST ensure that the product you select is semantically the EXACT SAME type of product as the Target Product Name ("${queryContext}").
-- For example, if Target Product Name is "원목 도마거치대" (Wooden), do NOT match a "스텐 도마거치대" (Stainless) from the same seller.
-- If you find multiple products from this seller, pick the one whose title best matches the core meaning and key materials/features of "${queryContext}".
-3. CATALOG HANDLING (PRICE COMPARISON): In Naver Shopping, products are often grouped into a "Price Comparison Catalog" (가격비교 매칭). If you see a catalog block, look at the sellers listed inside it ("쇼핑몰별 최저가"). If the Target Seller Name is one of those sellers, and the catalog title semantically matches the Target Product Name, count that ENTIRE CATALOG as the rank!
-4. If the seller name is completely hidden/missing (e.g., on Coupang), rely entirely on finding the best semantic match for "${queryContext}".
+2. STRICT MODEL & VARIANT MATCHING: The same seller ("${myStoreName}") might have MULTIPLE DIFFERENT products/variants on the same search page (e.g., "M자형" vs "상부장걸이 거치식 2라인", or different price tiers like 13,000원 vs 28,000원).
+- You MUST match the product whose title, model type, AND price level (~${targetPrice > 0 ? targetPrice.toLocaleString() + '원' : 'N/A'}) match the target "${queryContext}".
+- Do NOT match a different product model (e.g. do NOT match "M자형" if the target is "상부장걸이 2라인") just because it is from the same seller.
+3. CATALOG HANDLING (PRICE COMPARISON): In Naver Shopping, products are often grouped into a "Price Comparison Catalog" (가격비교 매칭). If you see a catalog block, look at the sellers listed inside it ("쇼핑몰별 최저가"). If the Target Seller Name is one of those sellers AND the catalog product matches the target model, count that ENTIRE CATALOG as the rank!
+4. If the seller name is completely hidden/missing (e.g., on Coupang), rely on finding the exact model title match for "${queryContext}".
 
 [SPEED OPTIMIZATION - CRITICAL]
 To make your response lightning fast, your "reasoning" field MUST be extremely short. DO NOT write out product names or full sentences.
