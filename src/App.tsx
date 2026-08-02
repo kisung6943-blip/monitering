@@ -2002,14 +2002,14 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
       </div>
 
       {/* Coupang Item Margin Calculator Section (User requested app) */}
-      <div className="border-t-4 border-slate-300 bg-slate-950 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="border-t-4 border-blue-500 bg-slate-100 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <CoupangItemMarginCalc />
         </div>
       </div>
 
       {/* Coupang Coupon Manager Section (User requested app https://coupon-indol.vercel.app) */}
-      <div className="border-t-4 border-slate-200 bg-slate-100 dark:bg-slate-950 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="border-t-4 border-rose-500 bg-slate-100 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <CoupangCouponManager />
         </div>
