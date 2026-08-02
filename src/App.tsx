@@ -14,6 +14,7 @@ import { Product, PriceLog } from "./types";
 import { INITIAL_PRODUCTS, generateHistoricalLogs } from "./data";
 import { supabase } from "./supabase";
 import RocketCalculator from "./components/RocketCalculator";
+import CoupangItemMarginCalc from "./components/CoupangItemMarginCalc";
 import { callGeminiGenerateContent } from "./utils/geminiApi";
 
 export default function App() {
@@ -1996,6 +1997,13 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
             </div>
           </div>
           <RocketCalculator />
+        </div>
+      </div>
+
+      {/* Coupang Item Margin Calculator Section (User requested app) */}
+      <div className="border-t-4 border-slate-300 bg-slate-950 py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <CoupangItemMarginCalc />
         </div>
       </div>
 
