@@ -16,6 +16,7 @@ import { supabase } from "./supabase";
 import RocketCalculator from "./components/RocketCalculator";
 import CoupangItemMarginCalc from "./components/CoupangItemMarginCalc";
 import CoupangCouponManager from "./components/CoupangCouponManager";
+import { CoupangEndLohasCalc } from "./components/CoupangEndLohas/CoupangEndLohasCalc";
 import { callGeminiGenerateContent } from "./utils/geminiApi";
 
 export default function App() {
@@ -2012,6 +2013,13 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
       <div className="border-t-4 border-rose-500 bg-slate-100 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <CoupangCouponManager />
+        </div>
+      </div>
+
+      {/* Coupang END LOHAS Calculator Section (User requested app https://coupang-end-lohas.vercel.app) */}
+      <div className="border-t-4 border-indigo-600 bg-slate-950 py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <CoupangEndLohasCalc />
         </div>
       </div>
 
