@@ -34,15 +34,15 @@ export const ComparisonMatrix: React.FC<ComparisonMatrixProps> = ({
   });
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden transition-all duration-300">
-      <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-blue-50/20 dark:bg-slate-900/40">
-        <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-          <Scale className="w-4 h-4 text-blue-500 animate-bounce" />
+    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden transition-all duration-300">
+      <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-blue-50/40">
+        <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+          <Scale className="w-4 h-4 text-blue-600 animate-bounce" />
           여러 상품 마진/광고 효율 비교표 ({selectedRecords.length}개 상품)
         </h4>
         <button
           onClick={onClearComparison}
-          className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-1 cursor-pointer"
+          className="text-xs text-slate-500 hover:text-slate-800 flex items-center gap-1 cursor-pointer"
         >
           비교 비우기
           <X className="w-3.5 h-3.5" />
@@ -56,17 +56,17 @@ export const ComparisonMatrix: React.FC<ComparisonMatrixProps> = ({
             비교를 시작하려면 최소 2개 이상의 상품을 선택해 주세요.
           </div>
         ) : (
-          <table className="w-full text-xs text-left text-slate-600 dark:text-slate-400 border-collapse">
+          <table className="w-full text-xs text-left text-slate-600 border-collapse">
             <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-                <th className="p-3 font-semibold text-slate-700 dark:text-slate-300 min-w-[120px]">비교 항목</th>
+              <tr className="border-b border-slate-200 bg-slate-50">
+                <th className="p-3 font-semibold text-slate-700 min-w-[120px]">비교 항목</th>
                 {selectedRecords.map((rec) => {
                   const isBest = rec.id === bestMarginRecordId;
                   return (
                     <th 
                       key={rec.id} 
                       className={`p-3 font-bold text-center relative min-w-[160px] ${
-                        isBest ? 'bg-amber-500/5 text-slate-900 dark:text-amber-300' : 'text-slate-800 dark:text-slate-200'
+                        isBest ? 'bg-amber-500/10 text-slate-900' : 'text-slate-800'
                       }`}
                     >
                       <div className="flex flex-col items-center gap-1">
@@ -84,7 +84,7 @@ export const ComparisonMatrix: React.FC<ComparisonMatrixProps> = ({
                           >
                             입력값 로드
                           </button>
-                          <span className="text-[9px] text-slate-300 dark:text-slate-700">|</span>
+                          <span className="text-[9px] text-slate-300">|</span>
                           <button
                             onClick={() => onRemoveCompareId(rec.id)}
                             className="text-[9px] font-medium text-red-500 hover:underline cursor-pointer"
@@ -98,11 +98,11 @@ export const ComparisonMatrix: React.FC<ComparisonMatrixProps> = ({
                 })}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+            <tbody className="divide-y divide-slate-100">
               <tr>
-                <td className="p-3 font-semibold text-slate-900 dark:text-white bg-slate-50/40 dark:bg-slate-900/40">판매가</td>
+                <td className="p-3 font-semibold text-slate-900 bg-slate-50/50">판매가</td>
                 {selectedRecords.map((rec) => (
-                  <td key={rec.id} className="p-3 text-center font-semibold text-slate-900 dark:text-white">
+                  <td key={rec.id} className="p-3 text-center font-semibold text-slate-900">
                     {formatWon(rec.input.sellingPrice)}
                   </td>
                 ))}
@@ -148,23 +148,23 @@ export const ComparisonMatrix: React.FC<ComparisonMatrixProps> = ({
                   );
                 })}
               </tr>
-              <tr className="bg-blue-50/10 dark:bg-blue-950/5">
-                <td className="p-3 font-semibold text-blue-700 dark:text-blue-400">순수익 (1개당)</td>
+              <tr className="bg-blue-50/30">
+                <td className="p-3 font-semibold text-blue-700">순수익 (1개당)</td>
                 {selectedRecords.map((rec) => (
-                  <td key={rec.id} className="p-3 text-center font-bold text-blue-700 dark:text-blue-300">
+                  <td key={rec.id} className="p-3 text-center font-bold text-blue-800">
                     {formatWon(rec.result.netProfit)}
                   </td>
                 ))}
               </tr>
-              <tr className="bg-teal-50/10 dark:bg-teal-950/5">
-                <td className="p-3 font-semibold text-teal-700 dark:text-teal-400">최종 마진율</td>
+              <tr className="bg-teal-50/30">
+                <td className="p-3 font-semibold text-teal-700">최종 마진율</td>
                 {selectedRecords.map((rec) => {
                   const isBest = rec.id === bestMarginRecordId;
                   return (
                     <td 
                       key={rec.id} 
                       className={`p-3 text-center font-extrabold text-sm ${
-                        isBest ? 'text-teal-600 dark:text-teal-300 bg-amber-500/5' : 'text-slate-800 dark:text-slate-200'
+                        isBest ? 'text-teal-700 bg-amber-500/10' : 'text-slate-800'
                       }`}
                     >
                       {formatPercent(rec.result.marginRate)}
@@ -172,10 +172,10 @@ export const ComparisonMatrix: React.FC<ComparisonMatrixProps> = ({
                   );
                 })}
               </tr>
-              <tr className="bg-indigo-50/10 dark:bg-indigo-950/5">
-                <td className="p-3 font-semibold text-indigo-700 dark:text-indigo-400">손익분기 END ROAS</td>
+              <tr className="bg-indigo-50/30">
+                <td className="p-3 font-semibold text-indigo-700">손익분기 END ROAS</td>
                 {selectedRecords.map((rec) => (
-                  <td key={rec.id} className="p-3 text-center font-bold text-indigo-700 dark:text-indigo-300 text-sm">
+                  <td key={rec.id} className="p-3 text-center font-bold text-indigo-800 text-sm">
                     {rec.result.marginRate > 0 ? `${rec.result.endRoas}%` : 'N/A'}
                   </td>
                 ))}
