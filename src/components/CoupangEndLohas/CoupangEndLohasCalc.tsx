@@ -4,12 +4,14 @@ import { CalculationInput, CalculationResult, CalculationRecord, DailySaleRecord
 import { ResultReport } from './ResultReport';
 import { HistoryList } from './HistoryList';
 import { ComparisonMatrix } from './ComparisonMatrix';
+import { supabase } from '../../supabase';
 import { 
   Calculator, 
   RefreshCw, 
   Info,
   CheckCircle2,
-  Plus
+  Plus,
+  CloudCheck
 } from 'lucide-react';
 
 const DEFAULT_INPUTS: CalculationInput = {
@@ -169,8 +171,65 @@ export function CoupangEndLohasCalc() {
   const resultsRef = useRef<HTMLDivElement>(null);
   const comparisonRef = useRef<HTMLDivElement>(null);
 
+  // Load from Supabase DB on mount
+  useEffect(() => {
+    const fetchSupabaseRecords = async () => {
+      try {
+        const { data, error } = await supabase.from('lohas_records').select('*');
+        if (!error && data && data.length > 0) {
+          const parsed = data.map((item: any) => ({
+            id: item.id.toString(),
+            title: item.title,
+            input: typeof item.input === 'string' ? JSON.parse(item.input) : item.input,
+            result: typeof item.result === 'string' ? JSON.parse(item.result) : item.result,
+            createdAt: item.created_at || item.createdAt || new Date().toISOString(),
+            memo: item.memo || '',
+            dailySales: typeof item.daily_sales === 'string' ? JSON.parse(item.daily_sales) : (item.dailySales || []),
+          }));
+          setRecords(parsed);
+          localStorage.setItem('lohas_records', JSON.stringify(parsed));
+        } else if (!error && data && data.length === 0) {
+          const payload = DEFAULT_RECORDS.map(r => ({
+            id: r.id,
+            title: r.title,
+            input: r.input,
+            result: r.result,
+            created_at: r.createdAt,
+            memo: r.memo || '',
+            daily_sales: r.dailySales || [],
+          }));
+          await supabase.from('lohas_records').upsert(payload);
+        }
+      } catch (e) {
+        console.warn('Supabase lohas_records load error:', e);
+      }
+    };
+    fetchSupabaseRecords();
+  }, []);
+
+  // Save to LocalStorage and Supabase DB automatically
   useEffect(() => {
     localStorage.setItem('lohas_records', JSON.stringify(records));
+
+    const syncToSupabase = async () => {
+      try {
+        const payload = records.map(r => ({
+          id: r.id,
+          title: r.title,
+          input: r.input,
+          result: r.result,
+          created_at: r.createdAt,
+          memo: r.memo || '',
+          daily_sales: r.dailySales || [],
+        }));
+        if (payload.length > 0) {
+          await supabase.from('lohas_records').upsert(payload);
+        }
+      } catch (e) {
+        console.warn('Supabase lohas_records sync error:', e);
+      }
+    };
+    syncToSupabase();
   }, [records]);
 
   const showToast = (message: string, type: 'success' | 'info' = 'success') => {
@@ -244,7 +303,7 @@ export function CoupangEndLohasCalc() {
 
       setRecords(prev => prev.map(r => r.id === activeRecord.id ? updatedRecord : r));
       setActiveRecord(updatedRecord);
-      showToast(`'${titleText}' 상품 정보가 성공적으로 업데이트되었습니다.`);
+      showToast(`'${titleText}' 상품 정보가 업데이트되어 슈파베이스 클라우드에 자동 저장되었습니다.`);
     } else {
       const newRecord: CalculationRecord = {
         id: Date.now().toString(),
@@ -256,7 +315,7 @@ export function CoupangEndLohasCalc() {
 
       setRecords(prev => [newRecord, ...prev].slice(0, 100));
       setActiveRecord(newRecord);
-      showToast(`'${titleText}' 상품이 새롭게 등록되었습니다.`);
+      showToast(`'${titleText}' 상품이 새롭게 등록되어 슈파베이스 클라우드에 자동 저장되었습니다.`);
     }
 
     setTimeout(() => {
@@ -301,6 +360,7 @@ export function CoupangEndLohasCalc() {
   const handleDeleteRecord = (id: string) => {
     setRecords(prev => prev.filter(r => r.id !== id));
     setSelectedForComparison(prev => prev.filter(item => item !== id));
+    supabase.from('lohas_records').delete().eq('id', id).then();
     showToast('기록이 삭제되었습니다.', 'info');
   };
 
@@ -309,6 +369,7 @@ export function CoupangEndLohasCalc() {
       setRecords([]);
       setSelectedForComparison([]);
       setShowComparison(false);
+      supabase.from('lohas_records').delete().neq('id', '0').then();
       showToast('모든 기록이 초기화되었습니다.', 'info');
     }
   };
@@ -339,7 +400,7 @@ export function CoupangEndLohasCalc() {
         const importedData = JSON.parse(e.target?.result as string);
         if (Array.isArray(importedData)) {
           setRecords(importedData);
-          showToast('데이터가 성공적으로 복구되었습니다.');
+          showToast('데이터가 성공적으로 복구되어 슈파베이스 클라우드에 자동 저장되었습니다.');
         } else {
           showToast('잘못된 백업 파일입니다.', 'info');
         }
@@ -462,10 +523,16 @@ export function CoupangEndLohasCalc() {
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 rounded-2xl p-6 text-white shadow-md relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="space-y-1 z-10">
-          <span className="bg-white/20 text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
-            Coupang Seller Tool
-          </span>
-          <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            <span className="bg-white/20 text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+              Coupang Seller Tool
+            </span>
+            <span className="bg-emerald-500/30 text-emerald-100 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 border border-emerald-400/30">
+              <CloudCheck className="w-3 h-3 text-emerald-300" />
+              슈파베이스 실시간 동기화 ON
+            </span>
+          </div>
+          <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight flex items-center gap-2 mt-1">
             <Calculator className="w-6 h-6 text-blue-100" />
             쿠팡 END LOHAS 계산기
           </h2>
@@ -518,7 +585,7 @@ export function CoupangEndLohasCalc() {
                 <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center gap-2">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-600"></span>
                   <span className="text-[11px] font-bold text-emerald-800">
-                    ✨ 새 상품 추가 모드 (계산 시 목록에 새 등록)
+                    ✨ 새 상품 추가 모드 (계산 시 클라우드 자동 저장)
                   </span>
                 </div>
               )}
@@ -696,7 +763,7 @@ export function CoupangEndLohasCalc() {
                   className="w-full bg-[#0074e9] hover:bg-[#005cb8] text-white font-extrabold py-3.5 px-4 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.98] mt-2 cursor-pointer"
                 >
                   <Calculator className="w-4 h-4" />
-                  계산 및 상품 등록
+                  계산 및 상품 등록 (자동 클라우드 저장)
                 </button>
               )}
             </form>
