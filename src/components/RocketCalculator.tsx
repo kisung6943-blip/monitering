@@ -24,23 +24,45 @@ import { WeeklyPurchaseModal } from './WeeklyPurchaseModal';
 import { AdAllocatorModal } from './AdAllocatorModal';
 import { ProductMasterModal } from './ProductMasterModal';
 import { AIAdvisorModal } from './AIAdvisorModal';
+import { supabase } from '../supabase';
 import * as XLSX from 'xlsx';
 
 export default function RocketCalculator() {
-  // LocalStorage state initialization
+  // LocalStorage & Supabase state initialization
   const [products, setProducts] = useState<ProductMaster[]>(() => {
     const saved = localStorage.getItem('coupang_products');
-    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.some((p: any) => p.name?.includes('요거트'))) return INITIAL_PRODUCTS;
+        return parsed;
+      } catch (e) {}
+    }
+    return INITIAL_PRODUCTS;
   });
 
   const [settlements, setSettlements] = useState<OrderSettlement[]>(() => {
     const saved = localStorage.getItem('coupang_settlements');
-    return saved ? JSON.parse(saved) : INITIAL_SETTLEMENTS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.some((s: any) => s.productName?.includes('요거트'))) return INITIAL_SETTLEMENTS;
+        return parsed;
+      } catch (e) {}
+    }
+    return INITIAL_SETTLEMENTS;
   });
 
   const [dailyAdCosts, setDailyAdCosts] = useState<DailyProductAdCost[]>(() => {
     const saved = localStorage.getItem('coupang_daily_ads');
-    return saved ? JSON.parse(saved) : INITIAL_DAILY_AD_COSTS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.some((a: any) => a.productName?.includes('요거트'))) return INITIAL_DAILY_AD_COSTS;
+        return parsed;
+      } catch (e) {}
+    }
+    return INITIAL_DAILY_AD_COSTS;
   });
 
   // UI state
@@ -67,17 +89,62 @@ export default function RocketCalculator() {
     groupBy: 'none',
   });
 
-  // Save to LocalStorage
+  // Fetch real data from Supabase Cloud DB on mount
+  useEffect(() => {
+    const fetchCloudData = async () => {
+      try {
+        const { data: cloudProds } = await supabase.from('coupang_products').select('*');
+        const { data: cloudSettles } = await supabase.from('coupang_settlements').select('*');
+        const { data: cloudDailyAds } = await supabase.from('coupang_daily_ads').select('*');
+
+        if (cloudSettles && cloudSettles.length > 0) {
+          setSettlements(cloudSettles);
+          localStorage.setItem('coupang_settlements', JSON.stringify(cloudSettles));
+        } else {
+          // Seed Supabase if empty
+          await supabase.from('coupang_settlements').upsert(INITIAL_SETTLEMENTS);
+        }
+
+        if (cloudProds && cloudProds.length > 0) {
+          setProducts(cloudProds);
+          localStorage.setItem('coupang_products', JSON.stringify(cloudProds));
+        } else {
+          await supabase.from('coupang_products').upsert(INITIAL_PRODUCTS);
+        }
+
+        if (cloudDailyAds && cloudDailyAds.length > 0) {
+          setDailyAdCosts(cloudDailyAds);
+          localStorage.setItem('coupang_daily_ads', JSON.stringify(cloudDailyAds));
+        } else {
+          await supabase.from('coupang_daily_ads').upsert(INITIAL_DAILY_AD_COSTS);
+        }
+      } catch (err) {
+        console.warn('Supabase cloud sync warning:', err);
+      }
+    };
+    fetchCloudData();
+  }, []);
+
+  // Save to LocalStorage & Supabase DB
   useEffect(() => {
     localStorage.setItem('coupang_products', JSON.stringify(products));
+    try {
+      supabase.from('coupang_products').upsert(products);
+    } catch (e) {}
   }, [products]);
 
   useEffect(() => {
     localStorage.setItem('coupang_settlements', JSON.stringify(settlements));
+    try {
+      supabase.from('coupang_settlements').upsert(settlements);
+    } catch (e) {}
   }, [settlements]);
 
   useEffect(() => {
     localStorage.setItem('coupang_daily_ads', JSON.stringify(dailyAdCosts));
+    try {
+      supabase.from('coupang_daily_ads').upsert(dailyAdCosts);
+    } catch (e) {}
   }, [dailyAdCosts]);
 
   // Compute settlements & summary
