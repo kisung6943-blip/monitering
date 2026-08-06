@@ -175,49 +175,118 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
   const [toastMessage, setToastMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
   // Initialize data from Supabase, fallback to LocalStorage or seed data
+  // Initialize data by merging Supabase, LocalStorage, and seed data
   useEffect(() => {
     const initData = async () => {
+      let dbProds: Product[] = [];
+      let dbLogs: PriceLog[] = [];
+
       try {
-        const { data: prodData, error: prodErr } = await supabase.from("products").select("*");
-        const { data: logData, error: logErr } = await supabase.from("price_logs").select("*");
-        
-        if (!prodErr && prodData && prodData.length > 0) {
-          setProducts(prodData);
-          setPriceLogs(logData || []);
-          setIsLoading(false);
-          return;
-        }
+        const { data: prodData } = await supabase.from("products").select("*");
+        const { data: logData } = await supabase.from("price_logs").select("*");
+        if (prodData && prodData.length > 0) dbProds = prodData;
+        if (logData && logData.length > 0) dbLogs = logData;
       } catch (err) {
         console.error("Supabase load error:", err);
       }
 
-      // Fallback
-      const storedProducts = localStorage.getItem("price_monitor_products");
-      const storedLogs = localStorage.getItem("price_monitor_logs");
-
-      if (storedProducts && storedLogs) {
-        const parsedProducts = JSON.parse(storedProducts);
-        const parsedLogs = JSON.parse(storedLogs);
-        setProducts(parsedProducts);
-        setPriceLogs(parsedLogs);
-        
-        // Sync local to DB
-        supabase.from("products").upsert(parsedProducts).then();
-        supabase.from("price_logs").upsert(parsedLogs).then();
-      } else {
-        // Seed initial data
-        setProducts(INITIAL_PRODUCTS);
-        const initialLogs = generateHistoricalLogs();
-        setPriceLogs(initialLogs);
-        localStorage.setItem("price_monitor_products", JSON.stringify(INITIAL_PRODUCTS));
-        localStorage.setItem("price_monitor_logs", JSON.stringify(initialLogs));
-        
-        supabase.from("products").upsert(INITIAL_PRODUCTS).then();
-        supabase.from("price_logs").upsert(initialLogs).then();
+      // Read LocalStorage
+      let localProds: Product[] = [];
+      let localLogs: PriceLog[] = [];
+      try {
+        const storedProducts = localStorage.getItem("price_monitor_products");
+        const storedLogs = localStorage.getItem("price_monitor_logs");
+        if (storedProducts) localProds = JSON.parse(storedProducts);
+        if (storedLogs) localLogs = JSON.parse(storedLogs);
+      } catch (err) {
+        console.error("LocalStorage parse error:", err);
       }
+
+      // Helper to merge products
+      const mergeProducts = (dProds: Product[], lProds: Product[]): Product[] => {
+        const map = new Map<string, Product>();
+        const addOrMerge = (p: Product) => {
+          if (!map.has(p.id)) {
+            map.set(p.id, { ...p });
+            return;
+          }
+          const existing = map.get(p.id)!;
+          const mergedKeywords = Array.from({ length: 6 }).map((_, i) =>
+            p.keywords?.[i] || existing.keywords?.[i] || ""
+          );
+          const mergedVolumes = Array.from({ length: 6 }).map((_, i) =>
+            p.keywordVolumes?.[i] || existing.keywordVolumes?.[i] || ""
+          );
+          map.set(p.id, {
+            ...existing,
+            ...p,
+            keywords: mergedKeywords,
+            keywordVolumes: mergedVolumes,
+          });
+        };
+        dProds.forEach(addOrMerge);
+        lProds.forEach(addOrMerge);
+        return Array.from(map.values());
+      };
+
+      // Helper to merge price logs without losing data
+      const mergeLogs = (dLogs: PriceLog[], lLogs: PriceLog[]): PriceLog[] => {
+        const map = new Map<string, PriceLog>();
+        const addOrMerge = (log: PriceLog) => {
+          const key = `${log.productId}_${log.date}`;
+          if (!map.has(key)) {
+            map.set(key, { ...log });
+            return;
+          }
+          const existing = map.get(key)!;
+          const mergedNavRanks = Array.from({ length: 6 }).map((_, i) =>
+            log.keywordRanks?.[i] || existing.keywordRanks?.[i] || ""
+          );
+          const mergedCoupRanks = Array.from({ length: 6 }).map((_, i) =>
+            log.coupangKeywordRanks?.[i] || existing.coupangKeywordRanks?.[i] || ""
+          );
+          map.set(key, {
+            id: existing.id || log.id,
+            date: log.date || existing.date,
+            productId: log.productId || existing.productId,
+            naverPrice: log.naverPrice || existing.naverPrice || 0,
+            naverShipping: log.naverShipping ?? existing.naverShipping ?? 0,
+            naverTotal: log.naverTotal || existing.naverTotal || 0,
+            coupangSeller: log.coupangSeller || existing.coupangSeller || "",
+            coupangPrice: log.coupangPrice || existing.coupangPrice || 0,
+            coupangShipping: log.coupangShipping ?? existing.coupangShipping ?? 0,
+            coupangTotal: log.coupangTotal || existing.coupangTotal || 0,
+            difference: log.difference || existing.difference || 0,
+            keywordRanks: mergedNavRanks,
+            coupangKeywordRanks: mergedCoupRanks,
+            memo: log.memo || existing.memo || "",
+          });
+        };
+        dLogs.forEach(addOrMerge);
+        lLogs.forEach(addOrMerge);
+        return Array.from(map.values());
+      };
+
+      let finalProducts = mergeProducts(dbProds, localProds);
+      let finalLogs = mergeLogs(dbLogs, localLogs);
+
+      if (finalProducts.length === 0) {
+        finalProducts = INITIAL_PRODUCTS;
+        finalLogs = generateHistoricalLogs();
+      }
+
+      setProducts(finalProducts);
+      setPriceLogs(finalLogs);
+      localStorage.setItem("price_monitor_products", JSON.stringify(finalProducts));
+      localStorage.setItem("price_monitor_logs", JSON.stringify(finalLogs));
+
+      // Sync merged result back to Supabase asynchronously
+      if (finalProducts.length > 0) supabase.from("products").upsert(finalProducts).then();
+      if (finalLogs.length > 0) supabase.from("price_logs").upsert(finalLogs).then();
+
       setIsLoading(false);
     };
-    
+
     initData();
   }, []);
 
