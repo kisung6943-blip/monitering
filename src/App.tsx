@@ -33,8 +33,15 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("all"); // all, naver_cheaper, coupang_cheaper, same, no_coupang
   
-  // Selected product for chart and quick logging
-  const [selectedProductId, setSelectedProductId] = useState<string>("prod-1");
+  // Selected product for chart and quick logging (remember last selected or default to 스퀴지)
+  const [selectedProductId, setSelectedProductIdState] = useState<string>(
+    () => localStorage.getItem("price_monitor_selected_product_id") || "prod-1785412875494"
+  );
+  
+  const setSelectedProductId = (id: string) => {
+    setSelectedProductIdState(id);
+    localStorage.setItem("price_monitor_selected_product_id", id);
+  };
   
   // AI Parsing states
   const [aiInputText, setAiInputText] = useState<string>("");
@@ -174,7 +181,71 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
   // Toast notifications
   const [toastMessage, setToastMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
-  // Initialize data from Supabase, fallback to LocalStorage or seed data
+  // Helper to merge products without losing keywords
+  const mergeProducts = (dProds: Product[], lProds: Product[]): Product[] => {
+    const map = new Map<string, Product>();
+    const addOrMerge = (p: Product) => {
+      if (!map.has(p.id)) {
+        map.set(p.id, { ...p });
+        return;
+      }
+      const existing = map.get(p.id)!;
+      const mergedKeywords = Array.from({ length: 6 }).map((_, i) =>
+        p.keywords?.[i] || existing.keywords?.[i] || ""
+      );
+      const mergedVolumes = Array.from({ length: 6 }).map((_, i) =>
+        p.keywordVolumes?.[i] || existing.keywordVolumes?.[i] || ""
+      );
+      map.set(p.id, {
+        ...existing,
+        ...p,
+        keywords: mergedKeywords,
+        keywordVolumes: mergedVolumes,
+      });
+    };
+    dProds.forEach(addOrMerge);
+    lProds.forEach(addOrMerge);
+    return Array.from(map.values());
+  };
+
+  // Helper to merge price logs without losing data
+  const mergeLogs = (dLogs: PriceLog[], lLogs: PriceLog[]): PriceLog[] => {
+    const map = new Map<string, PriceLog>();
+    const addOrMerge = (log: PriceLog) => {
+      const key = `${log.productId}_${log.date}`;
+      if (!map.has(key)) {
+        map.set(key, { ...log });
+        return;
+      }
+      const existing = map.get(key)!;
+      const mergedNavRanks = Array.from({ length: 6 }).map((_, i) =>
+        log.keywordRanks?.[i] || existing.keywordRanks?.[i] || ""
+      );
+      const mergedCoupRanks = Array.from({ length: 6 }).map((_, i) =>
+        log.coupangKeywordRanks?.[i] || existing.coupangKeywordRanks?.[i] || ""
+      );
+      map.set(key, {
+        id: existing.id || log.id,
+        date: log.date || existing.date,
+        productId: log.productId || existing.productId,
+        naverPrice: log.naverPrice || existing.naverPrice || 0,
+        naverShipping: log.naverShipping ?? existing.naverShipping ?? 0,
+        naverTotal: log.naverTotal || existing.naverTotal || 0,
+        coupangSeller: log.coupangSeller || existing.coupangSeller || "",
+        coupangPrice: log.coupangPrice || existing.coupangPrice || 0,
+        coupangShipping: log.coupangShipping ?? existing.coupangShipping ?? 0,
+        coupangTotal: log.coupangTotal || existing.coupangTotal || 0,
+        difference: log.difference || existing.difference || 0,
+        keywordRanks: mergedNavRanks,
+        coupangKeywordRanks: mergedCoupRanks,
+        memo: log.memo || existing.memo || "",
+      });
+    };
+    dLogs.forEach(addOrMerge);
+    lLogs.forEach(addOrMerge);
+    return Array.from(map.values());
+  };
+
   // Initialize data by merging Supabase, LocalStorage, and seed data
   useEffect(() => {
     const initData = async () => {
@@ -201,71 +272,6 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
       } catch (err) {
         console.error("LocalStorage parse error:", err);
       }
-
-      // Helper to merge products
-      const mergeProducts = (dProds: Product[], lProds: Product[]): Product[] => {
-        const map = new Map<string, Product>();
-        const addOrMerge = (p: Product) => {
-          if (!map.has(p.id)) {
-            map.set(p.id, { ...p });
-            return;
-          }
-          const existing = map.get(p.id)!;
-          const mergedKeywords = Array.from({ length: 6 }).map((_, i) =>
-            p.keywords?.[i] || existing.keywords?.[i] || ""
-          );
-          const mergedVolumes = Array.from({ length: 6 }).map((_, i) =>
-            p.keywordVolumes?.[i] || existing.keywordVolumes?.[i] || ""
-          );
-          map.set(p.id, {
-            ...existing,
-            ...p,
-            keywords: mergedKeywords,
-            keywordVolumes: mergedVolumes,
-          });
-        };
-        dProds.forEach(addOrMerge);
-        lProds.forEach(addOrMerge);
-        return Array.from(map.values());
-      };
-
-      // Helper to merge price logs without losing data
-      const mergeLogs = (dLogs: PriceLog[], lLogs: PriceLog[]): PriceLog[] => {
-        const map = new Map<string, PriceLog>();
-        const addOrMerge = (log: PriceLog) => {
-          const key = `${log.productId}_${log.date}`;
-          if (!map.has(key)) {
-            map.set(key, { ...log });
-            return;
-          }
-          const existing = map.get(key)!;
-          const mergedNavRanks = Array.from({ length: 6 }).map((_, i) =>
-            log.keywordRanks?.[i] || existing.keywordRanks?.[i] || ""
-          );
-          const mergedCoupRanks = Array.from({ length: 6 }).map((_, i) =>
-            log.coupangKeywordRanks?.[i] || existing.coupangKeywordRanks?.[i] || ""
-          );
-          map.set(key, {
-            id: existing.id || log.id,
-            date: log.date || existing.date,
-            productId: log.productId || existing.productId,
-            naverPrice: log.naverPrice || existing.naverPrice || 0,
-            naverShipping: log.naverShipping ?? existing.naverShipping ?? 0,
-            naverTotal: log.naverTotal || existing.naverTotal || 0,
-            coupangSeller: log.coupangSeller || existing.coupangSeller || "",
-            coupangPrice: log.coupangPrice || existing.coupangPrice || 0,
-            coupangShipping: log.coupangShipping ?? existing.coupangShipping ?? 0,
-            coupangTotal: log.coupangTotal || existing.coupangTotal || 0,
-            difference: log.difference || existing.difference || 0,
-            keywordRanks: mergedNavRanks,
-            coupangKeywordRanks: mergedCoupRanks,
-            memo: log.memo || existing.memo || "",
-          });
-        };
-        dLogs.forEach(addOrMerge);
-        lLogs.forEach(addOrMerge);
-        return Array.from(map.values());
-      };
 
       let finalProducts = mergeProducts(dbProds, localProds);
       let finalLogs = mergeLogs(dbLogs, localLogs);
@@ -755,7 +761,14 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
         try {
           const parsed = JSON.parse(event.target?.result as string);
           if (parsed.products && parsed.priceLogs) {
-            saveToLocalStorage(parsed.products, parsed.priceLogs);
+            const mergedProducts = mergeProducts(products, parsed.products);
+            const mergedLogs = mergeLogs(priceLogs, parsed.priceLogs);
+            saveToLocalStorage(mergedProducts, mergedLogs);
+            
+            const prodWithKw = mergedProducts.find(p => p.keywords && p.keywords.some(k => k));
+            if (prodWithKw && (!selectedProduct?.keywords || !selectedProduct.keywords.some(k => k))) {
+              setSelectedProductId(prodWithKw.id);
+            }
             showToast("백업 데이터가 성공적으로 복구되었습니다!");
           } else {
             showToast("올바른 백업 형식이 아닙니다.", "error");
