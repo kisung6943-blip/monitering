@@ -1418,6 +1418,29 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                                   </tr>
                                 );
                               })}
+                              <tr className="hover:bg-amber-50/50 bg-amber-50/20 border-t-2 border-slate-100">
+                                <td className="p-2.5 font-bold text-amber-800 min-w-[150px] max-w-[200px] truncate bg-amber-50/80 sticky left-0 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] z-10 flex items-center gap-1.5">
+                                  <span>📝</span> 일일 특이사항 (메모)
+                                </td>
+                                {trendDates.map(d => {
+                                  const log = priceLogs.find(l => l.productId === selectedProductId && l.date === d);
+                                  const memo = log?.memo || "";
+                                  const isSelected = d === selectedDate;
+                                  const isPrevMonth = d.startsWith(prevMonthStr);
+                                  return (
+                                    <td key={`memo-naver-${d}`} className={`p-1 text-center border-r border-amber-100/30 ${isSelected ? 'bg-amber-100/60' : isPrevMonth ? 'bg-slate-50/40' : ''}`}>
+                                      <input
+                                        type="text"
+                                        value={memo}
+                                        onChange={(e) => handleMemoChange(selectedProductId, d, e.target.value)}
+                                        placeholder="메모"
+                                        className="w-full min-w-[40px] text-[11px] px-1 py-1.5 outline-none text-amber-900 bg-transparent text-center focus:bg-white focus:ring-1 focus:ring-amber-400 rounded transition-all placeholder-amber-900/20 font-medium"
+                                        title={memo}
+                                      />
+                                    </td>
+                                  )
+                                })}
+                              </tr>
                             </tbody>
                           </table>
                           {(!selectedProduct?.keywords || !selectedProduct.keywords.some(k => k)) && (
@@ -1426,6 +1449,31 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                             </div>
                           )}
                         </div>
+                        {/* Monthly Memo Summary (Naver) */}
+                        {(() => {
+                          const logsWithMemos = priceLogs.filter(l => l.productId === selectedProductId && (l.date.startsWith(currMonthStr) || l.date.startsWith(prevMonthStr)) && l.memo && l.memo.trim() !== "");
+                          
+                          if (logsWithMemos.length === 0) return null;
+                          
+                          return (
+                            <div className="mt-3 bg-amber-50/60 rounded-xl p-3 border border-amber-200/50 shadow-[inset_0_2px_10px_rgba(245,158,11,0.05)]">
+                              <div className="flex items-center gap-1.5 mb-2.5">
+                                <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded">
+                                  {prevMonthStr} ~ {currMonthStr}
+                                </span>
+                                <h4 className="text-xs font-bold text-slate-700">전월/당월 특이사항 모아보기</h4>
+                              </div>
+                              <ul className="flex flex-col gap-1.5 pl-1">
+                                {logsWithMemos.sort((a, b) => a.date.localeCompare(b.date)).map(log => (
+                                  <li key={`summary-naver-${log.date}`} className="text-[11px] flex items-start gap-2 text-slate-600 bg-white/60 p-1.5 rounded-lg border border-white">
+                                    <span className="font-bold text-amber-700 bg-amber-100/50 px-1.5 py-0.5 rounded shrink-0 leading-none mt-0.5">{log.date.substring(5)}</span>
+                                    <span className="leading-relaxed break-words pt-0.5">{log.memo}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          );
+                        })()}
 
                         {/* Coupang Trend Table */}
                         <div className="flex flex-wrap justify-between items-center text-sm font-bold text-slate-800 border-b border-slate-100 pb-2 mt-4 gap-2">
