@@ -7,66 +7,6 @@ import fs from "fs-extra";
 
 dotenv.config();
 
-<<<<<<< HEAD
-const PRODUCTS_FILE = path.join(process.cwd(), "products.json");
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
-const supabase = createClient(
-  process.env.SUPABASE_URL || "",
-  process.env.SUPABASE_KEY || ""
-);
-
-async function getProducts() {
-  try {
-    const { data, error } = await supabase
-      .from('products')
-      .select('data')
-      .eq('id', 1)
-      .single();
-    
-    if (error) {
-      console.warn("Supabase read error, falling back to local file:", error.message || error);
-      if (await fs.pathExists(PRODUCTS_FILE)) {
-        return await fs.readJson(PRODUCTS_FILE);
-      }
-      return [];
-    }
-    if (!data) return [];
-    return data.data;
-  } catch (err: any) {
-    console.error("Error reading products from Supabase, falling back to local file:", err.message || err);
-    if (await fs.pathExists(PRODUCTS_FILE)) {
-      return await fs.readJson(PRODUCTS_FILE);
-    }
-    return [];
-  }
-}
-
-async function saveProducts(products: any) {
-  // Always save to local file as backup/local storage
-  try {
-    await fs.writeJson(PRODUCTS_FILE, products, { spaces: 2 });
-  } catch (err) {
-    console.error("Error saving products to local file:", err);
-  }
-
-  try {
-    const { error } = await supabase
-      .from('products')
-      .upsert({ id: 1, data: products });
-    
-    if (error) console.error("Supabase Save Error:", error.message || error);
-  } catch (err: any) {
-    console.error("Error saving products to Supabase:", err.message || err);
-  }
-}
-
-async function extractProductInfo(url: string) {
-  try {
-    const response = await axios.get(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-=======
 let aiClient: GoogleGenAI | null = null;
 
 function getGeminiClient(): GoogleGenAI {
@@ -81,7 +21,6 @@ function getGeminiClient(): GoogleGenAI {
         headers: {
           "User-Agent": "aistudio-build",
         },
->>>>>>> d99734d
       },
     });
   }

@@ -1,220 +1,488 @@
 import React from 'react';
-import { DollarSign, TrendingUp, ShoppingBag, PieChart, Layers } from 'lucide-react';
-import { SettlementOrder } from '../../dailyCalculatorTypes';
+import { 
+  AlertCircle, 
+  ArrowUpRight, 
+  Banknote, 
+  CheckCircle2, 
+  Coins, 
+  Layers, 
+  Package, 
+  Percent, 
+  Receipt, 
+  ShoppingBag, 
+  Target,
+  TrendingUp, 
+  Truck 
+} from 'lucide-react';
 import { PLATFORMS } from '../../dailyCalculatorData/initialData';
-import { formatKRW, formatNumber } from '../../dailyCalculatorUtils/calculator';
+import { DailySummary, OrderItem, PlatformType, SettlementSettings } from '../../dailyCalculatorTypes';
+import { formatKRW } from '../../dailyCalculatorUtils/calculator';
 
 interface DashboardViewProps {
-  orders: SettlementOrder[];
-  selectedMonth: string;
+  orders: OrderItem[];
+  selectedDate: string;
+  settings: SettlementSettings;
+  adSpends: Record<string, number>;
+  onSelectPlatform: (platform: PlatformType) => void;
+  onOpenQuickCostModal: (order: OrderItem) => void;
 }
 
-export const DashboardView: React.FC<DashboardViewProps> = ({ orders, selectedMonth }) => {
-<<<<<<< HEAD
-  const totalSales = orders.reduce((sum, o) => sum + o.salesAmount, 0);
-  const totalSettlement = orders.reduce((sum, o) => sum + o.settlementAmount, 0);
-  const totalCost = orders.reduce((sum, o) => sum + o.totalCost, 0);
-  const totalAdSpend = orders.reduce((sum, o) => sum + o.adSpend, 0);
-  const totalNetProfit = totalSettlement - totalCost - totalAdSpend;
-  const overallMarginRate = totalSales > 0 ? (totalNetProfit / totalSales) * 100 : 0;
-  const totalOrdersCount = orders.reduce((sum, o) => sum + o.quantity, 0);
+export const DashboardView: React.FC<DashboardViewProps> = ({
+  orders,
+  selectedDate,
+  settings,
+  adSpends,
+  onSelectPlatform,
+  onOpenQuickCostModal,
+}) => {
+  // Filter orders by date if specific date is selected
+  const filteredOrders = selectedDate === 'all' ? orders : orders.filter((o) => o.orderDate === selectedDate);
 
-  const platformStats = PLATFORMS.map((platform) => {
-    const platformOrders = orders.filter((o) => o.platform === platform.id);
-    const sales = platformOrders.reduce((sum, o) => sum + o.salesAmount, 0);
-    const settlement = platformOrders.reduce((sum, o) => sum + o.settlementAmount, 0);
-    const cost = platformOrders.reduce((sum, o) => sum + o.totalCost, 0);
-    const adSpend = platformOrders.reduce((sum, o) => sum + o.adSpend, 0);
-=======
-  const getSales = (o: any) => Number(o.salesAmount ?? o.totalPrice ?? (o.unitPrice ? o.unitPrice * o.quantity : 0)) || 0;
-  const getSettlement = (o: any) => Number(o.settlementAmount) || 0;
-  const getCost = (o: any) => Number(o.totalCost) || 0;
-  const getAdSpend = (o: any) => Number(o.adSpend) || 0;
+  // Compute Total Metrics
+  const totalSales = filteredOrders.reduce((sum, o) => sum + (o.totalPrice + o.buyerShippingFee), 0);
+  const totalProductSales = filteredOrders.reduce((sum, o) => sum + o.totalPrice, 0);
+  const totalBuyerShipping = filteredOrders.reduce((sum, o) => sum + o.buyerShippingFee, 0);
+  const totalSettlement = filteredOrders.reduce((sum, o) => sum + o.settlementAmount, 0);
+  const totalFees = filteredOrders.reduce((sum, o) => sum + o.feeAmount + (o.knowledgeShoppingFee || 0), 0);
+  const totalCost = filteredOrders.reduce((sum, o) => sum + o.totalCost, 0);
+  const totalPackaging = filteredOrders.reduce((sum, o) => sum + o.packagingCost, 0);
+  const totalActualShipping = filteredOrders.reduce((sum, o) => sum + o.actualShippingCost, 0);
+  const totalGrossProfit = filteredOrders.reduce((sum, o) => sum + o.grossProfit, 0);
+  const totalVatDeducted = filteredOrders.reduce((sum, o) => sum + o.vatDeductedProfit, 0);
+  const totalVat = filteredOrders.reduce((sum, o) => sum + o.vatAmount, 0);
+  const totalIncomeTax = filteredOrders.reduce((sum, o) => sum + o.incomeTax, 0);
+  const totalNetProfit = filteredOrders.reduce((sum, o) => sum + o.netProfit, 0);
+  const avgMargin = totalSales > 0 ? Math.round((totalNetProfit / totalSales) * 100) : 0;
 
-  const totalSales = orders.reduce((sum, o) => sum + getSales(o), 0);
-  const totalSettlement = orders.reduce((sum, o) => sum + getSettlement(o), 0);
-  const totalCost = orders.reduce((sum, o) => sum + getCost(o), 0);
-  const totalAdSpend = orders.reduce((sum, o) => sum + getAdSpend(o), 0);
-  const totalNetProfit = totalSettlement - totalCost - totalAdSpend;
-  const overallMarginRate = totalSales > 0 ? (totalNetProfit / totalSales) * 100 : 0;
-  const totalOrdersCount = orders.reduce((sum, o) => sum + (Number(o.quantity) || 1), 0);
+  // Total Ad Spend calculation across selected scope
+  const getTotalAdSpend = () => {
+    if (selectedDate === 'all') {
+      let sum = 0;
+      Object.keys(adSpends).forEach((k) => {
+        sum += adSpends[k] || 0;
+      });
+      return sum;
+    }
+    let sum = 0;
+    Object.keys(adSpends).forEach((k) => {
+      if (k.endsWith(`__${selectedDate}`)) {
+        sum += adSpends[k] || 0;
+      }
+    });
+    return sum;
+  };
 
-  const platformStats = PLATFORMS.map((platform) => {
-    const platformOrders = orders.filter((o) => o.platform === platform.id);
-    const sales = platformOrders.reduce((sum, o) => sum + getSales(o), 0);
-    const settlement = platformOrders.reduce((sum, o) => sum + getSettlement(o), 0);
-    const cost = platformOrders.reduce((sum, o) => sum + getCost(o), 0);
-    const adSpend = platformOrders.reduce((sum, o) => sum + getAdSpend(o), 0);
->>>>>>> d99734d
-    const netProfit = settlement - cost - adSpend;
-    const marginRate = sales > 0 ? (netProfit / sales) * 100 : 0;
+  const totalAdSpend = getTotalAdSpend();
+  const totalNetProfitAfterAd = totalNetProfit - totalAdSpend;
+  const totalRealMarginAfterAd = totalSales > 0 ? Math.round((totalNetProfitAfterAd / totalSales) * 100) : 0;
+
+  // Unmatched cost items
+  const unmatchedOrders = filteredOrders.filter((o) => !o.isCostMatched || o.unitCost === 0);
+
+  // Bundle delivery stats
+  const bundleOrders = filteredOrders.filter((o) => o.isBundleShipping);
+  const bundleSavedShipping = filteredOrders.filter((o) => o.isBundleShipping && o.actualShippingCost === 0).length * settings.defaultActualShippingCost;
+
+  // Platform Breakdown
+  const platformStats = Object.values(PLATFORMS).map((p) => {
+    const pOrders = filteredOrders.filter((o) => o.platform === p.id);
+    const pSales = pOrders.reduce((sum, o) => sum + (o.totalPrice + o.buyerShippingFee), 0);
+    const pSettlement = pOrders.reduce((sum, o) => sum + o.settlementAmount, 0);
+    const pCost = pOrders.reduce((sum, o) => sum + o.totalCost, 0);
+    const pNetProfit = pOrders.reduce((sum, o) => sum + o.netProfit, 0);
+    const pMargin = pSales > 0 ? Math.round((pNetProfit / pSales) * 100) : 0;
+
+    let pAdSpend = 0;
+    if (selectedDate === 'all') {
+      if (adSpends[`${p.id}__all`] !== undefined && adSpends[`${p.id}__all`] > 0) {
+        pAdSpend = adSpends[`${p.id}__all`];
+      } else {
+        Object.keys(adSpends).forEach((k) => {
+          if (k.startsWith(`${p.id}__`) && k !== `${p.id}__all`) {
+            pAdSpend += adSpends[k] || 0;
+          }
+        });
+      }
+    } else {
+      pAdSpend = adSpends[`${p.id}__${selectedDate}`] || 0;
+    }
+
+    const pRealNetProfit = pNetProfit - pAdSpend;
+    const pRealMargin = pSales > 0 ? Math.round((pRealNetProfit / pSales) * 100) : 0;
 
     return {
-      ...platform,
-<<<<<<< HEAD
-      orderCount: platformOrders.reduce((sum, o) => sum + o.quantity, 0),
-=======
-      orderCount: platformOrders.reduce((sum, o) => sum + (Number(o.quantity) || 1), 0),
->>>>>>> d99734d
-      sales,
-      settlement,
-      cost,
-      adSpend,
-      netProfit,
-<<<<<<< HEAD
-      marginRate,
-=======
-      marginRate: isNaN(marginRate) ? 0 : marginRate,
->>>>>>> d99734d
-      share: totalSales > 0 ? (sales / totalSales) * 100 : 0,
+      config: p,
+      orderCount: pOrders.length,
+      sales: pSales,
+      settlement: pSettlement,
+      cost: pCost,
+      netProfit: pNetProfit,
+      marginRate: pMargin,
+      adSpend: pAdSpend,
+      realNetProfit: pRealNetProfit,
+      realMarginRate: pRealMargin,
     };
-  }).filter((p) => p.orderCount > 0 || p.sales > 0);
+  });
+
+  // Daily Comparison Summary
+  const dates = Array.from(new Set(orders.map((o) => o.orderDate))) as string[];
+  const dailySummaries: DailySummary[] = dates.sort().reverse().map((date) => {
+    const dOrders = orders.filter((o) => o.orderDate === date);
+    const dSales = dOrders.reduce((sum, o) => sum + (o.totalPrice + o.buyerShippingFee), 0);
+    const dProductSales = dOrders.reduce((sum, o) => sum + o.totalPrice, 0);
+    const dShipping = dOrders.reduce((sum, o) => sum + o.buyerShippingFee, 0);
+    const dFees = dOrders.reduce((sum, o) => sum + o.feeAmount + (o.knowledgeShoppingFee || 0), 0);
+    const dSettlement = dOrders.reduce((sum, o) => sum + o.settlementAmount, 0);
+    const dCost = dOrders.reduce((sum, o) => sum + o.totalCost, 0);
+    const dPack = dOrders.reduce((sum, o) => sum + o.packagingCost, 0);
+    const dActualShip = dOrders.reduce((sum, o) => sum + o.actualShippingCost, 0);
+    const dGross = dOrders.reduce((sum, o) => sum + o.grossProfit, 0);
+    const dVat = dOrders.reduce((sum, o) => sum + o.vatAmount, 0);
+    const dTax = dOrders.reduce((sum, o) => sum + o.incomeTax, 0);
+    const dNet = dOrders.reduce((sum, o) => sum + o.netProfit, 0);
+    const dMargin = dSales > 0 ? Math.round((dNet / dSales) * 100) : 0;
+
+    return {
+      date,
+      orderCount: dOrders.length,
+      totalSales: dSales,
+      productSales: dProductSales,
+      shippingRevenue: dShipping,
+      feeTotal: dFees,
+      settlementTotal: dSettlement,
+      costTotal: dCost,
+      packagingTotal: dPack,
+      actualShippingTotal: dActualShip,
+      grossProfitTotal: dGross,
+      vatTotal: dVat,
+      incomeTaxTotal: dTax,
+      netProfitTotal: dNet,
+      marginRate: dMargin,
+    };
+  });
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">총 매출액 (결제금액)</span>
-            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
-              <ShoppingBag className="w-5 h-5" />
+    <div className="space-y-3">
+      {/* Unmatched Cost Alert Banner if any */}
+      {unmatchedOrders.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start justify-between shadow-xs">
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <h4 className="text-sm font-bold text-amber-900">
+                원가 미등록 상품 {unmatchedOrders.length}건 발견
+              </h4>
+              <p className="text-xs text-amber-700 mt-0.5">
+                원가가 입력되지 않은 주문이 있어 정확한 순수익 계산을 위해 원가 매칭이 필요합니다. 아래 버튼을 눌러 1초 만에 원가를 등록하세요.
+              </p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {unmatchedOrders.slice(0, 3).map((u) => (
+                  <button
+                    key={u.id}
+                    onClick={() => onOpenQuickCostModal(u)}
+                    className="inline-flex items-center px-2.5 py-1 text-xs font-medium bg-white text-amber-900 border border-amber-300 rounded-md hover:bg-amber-100 transition-colors cursor-pointer"
+                  >
+                    <Coins className="w-3.5 h-3.5 mr-1 text-amber-600" />
+                    {u.productName.length > 20 ? `${u.productName.substring(0, 20)}...` : u.productName} ({u.optionName}) 원가 입력
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-          <div className="mt-4">
-            <h3 className="text-2xl font-extrabold text-slate-900">{formatKRW(totalSales)}</h3>
-            <p className="mt-1 text-xs text-slate-500">
-              총 수량 <span className="font-bold text-slate-700">{formatNumber(totalOrdersCount)}</span>개 주문
-            </p>
+        </div>
+      )}
+
+      {/* Main KPI Highlights Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 shadow-2xs">
+        {/* 1. 총 매출액 */}
+        <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-xs">
+          <div className="flex items-center justify-between text-slate-500 mb-1">
+            <span className="text-xs font-semibold text-slate-600">일 총 매출액</span>
+            <div className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+              <Banknote className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="text-lg font-extrabold text-slate-900 tracking-tight">
+            {formatKRW(totalSales, true)}
+          </div>
+          <div className="text-[11px] text-slate-500 mt-1 flex items-center justify-between">
+            <span>상품 {formatKRW(totalProductSales)}</span>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">정산 예정금액</span>
-            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
-              <DollarSign className="w-5 h-5" />
+        {/* 2. 정산예정액 & 수수료 */}
+        <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-xs">
+          <div className="flex items-center justify-between text-slate-500 mb-1">
+            <span className="text-xs font-semibold text-slate-600">정산예정액</span>
+            <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <Receipt className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="mt-4">
-            <h3 className="text-2xl font-extrabold text-slate-900">{formatKRW(totalSettlement)}</h3>
-            <p className="mt-1 text-xs text-slate-500">
-              평균 수수료율{' '}
-              <span className="font-bold text-slate-700">
-                {totalSales > 0 ? (((totalSales - totalSettlement) / totalSales) * 100).toFixed(1) : 0}%
-              </span>
-            </p>
+          <div className="text-lg font-extrabold text-emerald-700 tracking-tight">
+            {formatKRW(totalSettlement, true)}
+          </div>
+          <div className="text-[11px] text-slate-500 mt-1 flex items-center justify-between">
+            <span>수수료</span>
+            <span className="text-rose-600 font-medium">-{formatKRW(totalFees, true)}</span>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">총 매입원가 + 광고비</span>
-            <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
-              <Layers className="w-5 h-5" />
+        {/* 3. 총 매입원가 */}
+        <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-xs">
+          <div className="flex items-center justify-between text-slate-500 mb-1">
+            <span className="text-xs font-semibold text-slate-600">총 매입원가</span>
+            <div className="w-6 h-6 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+              <Package className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="mt-4">
-            <h3 className="text-2xl font-extrabold text-slate-900">{formatKRW(totalCost + totalAdSpend)}</h3>
-            <p className="mt-1 text-xs text-slate-500">
-              원가 {formatKRW(totalCost)} | 광고비 {formatKRW(totalAdSpend)}
-            </p>
+          <div className="text-lg font-extrabold text-amber-700 tracking-tight">
+            {formatKRW(totalCost, true)}
+          </div>
+          <div className="text-[11px] text-slate-500 mt-1 flex items-center justify-between">
+            <span>원가 비중</span>
+            <span className="font-medium text-slate-700">
+              {totalSales > 0 ? Math.round((totalCost / totalSales) * 100) : 0}%
+            </span>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-2xl p-6 text-white shadow-md">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-indigo-200 uppercase tracking-wider">최종 순이익</span>
-            <div className="p-2 bg-indigo-500/20 text-indigo-300 rounded-xl border border-indigo-500/30">
-              <TrendingUp className="w-5 h-5" />
+        {/* 4. 총 일별 광고비 (NEW) */}
+        <div className="bg-rose-50/90 rounded-xl border border-rose-200 p-3.5 shadow-xs">
+          <div className="flex items-center justify-between text-rose-800 mb-1">
+            <span className="text-xs font-bold text-rose-900">총 일별 광고비</span>
+            <div className="w-6 h-6 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center">
+              <Target className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="mt-4">
-            <h3 className="text-3xl font-black text-indigo-300">{formatKRW(totalNetProfit)}</h3>
-            <div className="mt-2 flex items-center justify-between text-xs">
-              <span className="text-slate-300">최종 순마진율</span>
-              <span
-                className={`font-black px-2 py-0.5 rounded-full ${
-                  overallMarginRate >= 15
-                    ? 'bg-emerald-500/30 text-emerald-300'
-                    : overallMarginRate >= 5
-                    ? 'bg-amber-500/30 text-amber-300'
-                    : 'bg-rose-500/30 text-rose-300'
-                }`}
-              >
-                {overallMarginRate.toFixed(1)}%
-              </span>
-            </div>
+          <div className="text-lg font-extrabold text-rose-700 tracking-tight">
+            {formatKRW(totalAdSpend, true)}
+          </div>
+          <div className="text-[11px] text-rose-600 mt-1">
+            <span>플랫폼별 광고비 합계</span>
+          </div>
+        </div>
+
+        {/* 5. 최종 순수익 (세후) */}
+        <div className="bg-slate-900 text-white rounded-xl border border-slate-800 p-3.5 shadow-xs">
+          <div className="flex items-center justify-between text-indigo-200 mb-1">
+            <span className="text-xs font-bold text-indigo-300">최종 순수익(세후)</span>
+            <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-indigo-700 text-indigo-100">
+              마진 {avgMargin}%
+            </span>
+          </div>
+          <div className="text-lg font-extrabold text-white tracking-tight">
+            {formatKRW(totalNetProfit, true)}
+          </div>
+          <div className="text-[11px] text-slate-400 mt-1">
+            <span>종소세 차감후 순익</span>
+          </div>
+        </div>
+
+        {/* 6. 광고 후 최종 실순익 (핵심) */}
+        <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-emerald-950 text-white rounded-xl border border-emerald-600/80 p-3.5 shadow-md">
+          <div className="flex items-center justify-between text-emerald-200 mb-1">
+            <span className="text-xs font-bold text-emerald-300">광고 후 최종 실순익</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-emerald-400 text-slate-950">
+              실마진 {totalRealMarginAfterAd}%
+            </span>
+          </div>
+          <div className="text-xl font-black text-emerald-400 tracking-tight">
+            {formatKRW(totalNetProfitAfterAd, true)}
+          </div>
+          <div className="text-[11px] text-emerald-200/80 mt-1 flex items-center justify-between">
+            <span>광고비 차감완료</span>
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <PieChart className="w-5 h-5 text-indigo-600" />
-            <h3 className="font-bold text-slate-900 text-base">쇼핑몰별 손익 현황</h3>
+      {/* Tax & Margin Detailed Strip */}
+      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="flex items-center space-x-2">
+          <span className="font-bold text-slate-700 flex items-center">
+            <Receipt className="w-3.5 h-3.5 mr-1 text-slate-500" />
+            세무 정산 내역:
+          </span>
+          <span className="text-slate-600">
+            영업순익 <strong className="text-slate-800">{formatKRW(totalGrossProfit, true)}</strong>
+          </span>
+          <span className="text-slate-300">→</span>
+          <span className="text-slate-600">
+            부가세 제외(공제) <strong className="text-slate-800">{formatKRW(totalVatDeducted, true)}</strong> (부가세 {formatKRW(totalVat)})
+          </span>
+          <span className="text-slate-300">→</span>
+          <span className="text-slate-600">
+            종합소득세({settings.defaultIncomeTaxRate}%) <strong className="text-rose-600">-{formatKRW(totalIncomeTax, true)}</strong>
+          </span>
+        </div>
+
+        {bundleOrders.length > 0 && (
+          <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 font-medium">
+            <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-indigo-600" />
+            동일고객 합배송 {bundleOrders.length}건 감지 (실택배비 {formatKRW(bundleSavedShipping, true)} 자동 절감 정산)
           </div>
-          <span className="text-xs text-slate-400 font-medium">조회 기준월: {selectedMonth}</span>
+        )}
+      </div>
+
+      {/* Platform Channel Breakdown Cards */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold text-slate-900 flex items-center">
+            <Layers className="w-4 h-4 mr-1.5 text-indigo-600" />
+            각 쇼핑몰 플랫폼별 일일 매출 및 순이익 집계
+          </h3>
+          <span className="text-xs text-slate-500">
+            카드 클릭 시 해당 플랫폼 상세 엑셀 정산표로 바로 이동합니다.
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
+          {platformStats.map((item) => {
+            const p = item.config;
+            return (
+              <div
+                key={p.id}
+                onClick={() => onSelectPlatform(p.id)}
+                className="bg-white rounded-xl border border-slate-200 hover:border-indigo-400 hover:shadow-md transition-all p-4 cursor-pointer relative group flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <span className={`px-2 py-0.5 text-xs font-bold rounded-md border ${p.badgeColor}`}>
+                        {p.shortName}
+                      </span>
+                      <span className="text-xs text-slate-500 font-medium">
+                        {item.orderCount}건 주문
+                      </span>
+                    </div>
+                    <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 transition-colors" />
+                  </div>
+
+                  {/* Revenue & Profit */}
+                  <div className="space-y-1 my-2">
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-xs text-slate-500">일 매출액</span>
+                      <span className="text-base font-bold text-slate-900">
+                        {formatKRW(item.sales, true)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-xs text-slate-500">정산예정액</span>
+                      <span className="text-xs font-semibold text-emerald-700">
+                        {formatKRW(item.settlement, true)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-xs text-slate-500">일별 광고비</span>
+                      <span className="text-xs font-bold text-rose-600">
+                        {item.adSpend > 0 ? `-${formatKRW(item.adSpend, true)}` : '0원'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Real Net Profit & Real Margin Bar */}
+                <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                  <div>
+                    <span className="text-[11px] text-slate-500 block">광고후 실순익</span>
+                    <span className="text-sm font-black text-emerald-700">
+                      {formatKRW(item.realNetProfit, true)}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[11px] text-slate-500 block">실마진율</span>
+                    <span className={`text-xs font-black px-1.5 py-0.5 rounded ${
+                      item.realMarginRate >= 30 
+                        ? 'bg-emerald-100 text-emerald-800' 
+                        : item.realMarginRate >= 15 
+                        ? 'bg-blue-100 text-blue-800' 
+                        : 'bg-amber-100 text-amber-800'
+                    }`}>
+                      {item.realMarginRate}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Daily Historic Comparison Table */}
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+        <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <TrendingUp className="w-4 h-4 text-indigo-600" />
+            <h3 className="text-sm font-bold text-slate-900">
+              일자별 전체 일매출 및 순이익 집계표
+            </h3>
+          </div>
+          <span className="text-xs text-slate-500">
+            총 {dailySummaries.length}개 일자 데이터
+          </span>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-slate-500 text-[11px] font-bold uppercase tracking-wider border-b border-slate-200">
+          <table className="min-w-full text-xs text-left">
+            <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
               <tr>
-                <th className="py-3.5 px-6">쇼핑몰</th>
-                <th className="py-3.5 px-4 text-right">매출액</th>
-                <th className="py-3.5 px-4 text-right">정산 예정액</th>
-                <th className="py-3.5 px-4 text-right">매입 원가</th>
-                <th className="py-3.5 px-4 text-right">광고비</th>
-                <th className="py-3.5 px-4 text-right">순이익</th>
-                <th className="py-3.5 px-4 text-right">마진율</th>
-                <th className="py-3.5 px-6 text-right">매출 비중</th>
+                <th className="py-2.5 px-4">정산 일자</th>
+                <th className="py-2.5 px-3 text-center">주문수</th>
+                <th className="py-2.5 px-3 text-right">일 총매출액</th>
+                <th className="py-2.5 px-3 text-right">정산예정액</th>
+                <th className="py-2.5 px-3 text-right">총 매입원가</th>
+                <th className="py-2.5 px-3 text-right">포장/실배송비</th>
+                <th className="py-2.5 px-3 text-right">순익(영업이익)</th>
+                <th className="py-2.5 px-3 text-right">종합소득세(10%)</th>
+                <th className="py-2.5 px-4 text-right font-bold text-indigo-700">최종 순수익</th>
+                <th className="py-2.5 px-3 text-center font-bold">마진율</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {platformStats.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400 text-sm">
-                    업로드된 정산 데이터가 없습니다. 상단 [정산 엑셀 업로드] 버튼을 클릭해 보세요.
+            <tbody className="divide-y divide-slate-100 text-slate-700">
+              {dailySummaries.map((day) => (
+                <tr key={day.date} className="hover:bg-slate-50/80 transition-colors">
+                  <td className="py-2.5 px-4 font-bold text-slate-900 flex items-center">
+                    <span className="w-2 h-2 rounded-full bg-indigo-500 mr-2" />
+                    {day.date}
+                  </td>
+                  <td className="py-2.5 px-3 text-center font-medium">{day.orderCount}건</td>
+                  <td className="py-2.5 px-3 text-right font-bold text-slate-900">{formatKRW(day.totalSales, true)}</td>
+                  <td className="py-2.5 px-3 text-right font-semibold text-emerald-700">{formatKRW(day.settlementTotal, true)}</td>
+                  <td className="py-2.5 px-3 text-right text-slate-600">{formatKRW(day.costTotal, true)}</td>
+                  <td className="py-2.5 px-3 text-right text-slate-600">{formatKRW(day.packagingTotal + day.actualShippingTotal, true)}</td>
+                  <td className="py-2.5 px-3 text-right font-semibold text-slate-800">{formatKRW(day.grossProfitTotal, true)}</td>
+                  <td className="py-2.5 px-3 text-right text-rose-600">-{formatKRW(day.incomeTaxTotal, true)}</td>
+                  <td className="py-2.5 px-4 text-right font-extrabold text-indigo-700 text-sm bg-indigo-50/30">
+                    {formatKRW(day.netProfitTotal, true)}
+                  </td>
+                  <td className="py-2.5 px-3 text-center">
+                    <span className={`px-2 py-0.5 rounded-full font-bold text-[11px] ${
+                      day.marginRate >= 35 ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
+                    }`}>
+                      {day.marginRate}%
+                    </span>
                   </td>
                 </tr>
-              ) : (
-                platformStats.map((stat) => (
-                  <tr key={stat.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="py-4 px-6 font-bold text-slate-900 flex items-center space-x-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
-                      <span>{stat.name}</span>
-                    </td>
-                    <td className="py-4 px-4 text-right font-semibold text-slate-800">{formatKRW(stat.sales)}</td>
-                    <td className="py-4 px-4 text-right font-semibold text-emerald-600">{formatKRW(stat.settlement)}</td>
-                    <td className="py-4 px-4 text-right text-slate-600">{formatKRW(stat.cost)}</td>
-                    <td className="py-4 px-4 text-right text-slate-600">{formatKRW(stat.adSpend)}</td>
-                    <td className="py-4 px-4 text-right font-extrabold text-indigo-700">{formatKRW(stat.netProfit)}</td>
-                    <td className="py-4 px-4 text-right font-bold">
-                      <span
-                        className={`inline-block px-2 py-0.5 rounded-md text-xs ${
-                          stat.marginRate >= 15
-                            ? 'bg-emerald-50 text-emerald-700'
-                            : stat.marginRate >= 5
-                            ? 'bg-amber-50 text-amber-700'
-                            : 'bg-rose-50 text-rose-700'
-                        }`}
-                      >
-                        {stat.marginRate.toFixed(1)}%
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-right">
-                      <div className="flex items-center justify-end space-x-2">
-                        <div className="w-16 bg-slate-100 h-2 rounded-full overflow-hidden">
-                          <div className="bg-indigo-600 h-full rounded-full" style={{ width: `${Math.min(stat.share, 100)}%` }} />
-                        </div>
-                        <span className="text-xs font-semibold text-slate-500 w-10">{stat.share.toFixed(1)}%</span>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
+              ))}
             </tbody>
+            {/* Total Row */}
+            <tfoot className="bg-slate-100/80 font-bold border-t-2 border-slate-300 text-slate-900">
+              <tr>
+                <td className="py-3 px-4">전체 기간 합계</td>
+                <td className="py-3 px-3 text-center">{filteredOrders.length}건</td>
+                <td className="py-3 px-3 text-right text-slate-900">{formatKRW(totalSales, true)}</td>
+                <td className="py-3 px-3 text-right text-emerald-800">{formatKRW(totalSettlement, true)}</td>
+                <td className="py-3 px-3 text-right text-slate-700">{formatKRW(totalCost, true)}</td>
+                <td className="py-3 px-3 text-right text-slate-700">{formatKRW(totalPackaging + totalActualShipping, true)}</td>
+                <td className="py-3 px-3 text-right text-slate-900">{formatKRW(totalGrossProfit, true)}</td>
+                <td className="py-3 px-3 text-right text-rose-700">-{formatKRW(totalIncomeTax, true)}</td>
+                <td className="py-3 px-4 text-right text-indigo-900 text-sm bg-indigo-100/50">
+                  {formatKRW(totalNetProfit, true)}
+                </td>
+                <td className="py-3 px-3 text-center text-indigo-900">
+                  {avgMargin}%
+                </td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>

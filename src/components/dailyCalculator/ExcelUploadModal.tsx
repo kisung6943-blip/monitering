@@ -1,141 +1,278 @@
-import React, { useState } from 'react';
-import { X, Upload, FileSpreadsheet, CheckCircle2, AlertCircle } from 'lucide-react';
-import { PlatformType, SettlementOrder, CostMasterItem } from '../../dailyCalculatorTypes';
+import React, { useState, useRef } from 'react';
+import { 
+  AlertCircle, 
+  Check, 
+  FileSpreadsheet, 
+  Layers, 
+  Loader2, 
+  Sparkles, 
+  UploadCloud 
+} from 'lucide-react';
 import { PLATFORMS } from '../../dailyCalculatorData/initialData';
-import { parseSettlementExcel } from '../../dailyCalculatorUtils/excelParser';
+import { CostItem, OrderItem, PlatformType, SettlementSettings } from '../../dailyCalculatorTypes';
+import { formatKRW, processAllOrders } from '../../dailyCalculatorUtils/calculator';
+import { parseExcelOrders } from '../../dailyCalculatorUtils/excelParser';
 
 interface ExcelUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  costMaster: CostMasterItem[];
-  onUploadSuccess: (orders: SettlementOrder[]) => void;
+  costItems: CostItem[];
+  settings: SettlementSettings;
+  onImportOrders: (newOrders: OrderItem[], appendMode: boolean) => void;
 }
 
 export const ExcelUploadModal: React.FC<ExcelUploadModalProps> = ({
   isOpen,
   onClose,
-  costMaster,
-  onUploadSuccess,
+  costItems,
+  settings,
+  onImportOrders,
 }) => {
-  const [selectedPlatform, setSelectedPlatform] = useState<PlatformType>('smartstore');
+  const [selectedPlatform, setSelectedPlatform] = useState<PlatformType | 'auto'>('auto');
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [parsedPreview, setParsedPreview] = useState<{
+    orders: OrderItem[];
+    detectedPlatform: PlatformType;
+  } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [appendMode, setAppendMode] = useState(true);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-      setErrorMsg(null);
-    }
-  };
-
-  const handleUpload = async () => {
-    if (!file) {
-      setErrorMsg('엑셀 파일(.xlsx, .xls)을 선택해 주세요.');
-      return;
-    }
-
-    setIsProcessing(true);
+  const handleFileChange = async (incomingFile: File) => {
+    setFile(incomingFile);
     setErrorMsg(null);
+    setIsProcessing(true);
 
     try {
-      const result = await parseSettlementExcel(file, selectedPlatform, costMaster);
-      if (result.orders.length === 0) {
-        setErrorMsg('엑셀 파일에서 읽어올 수 있는 정산 내역이 없습니다.');
-      } else {
-        onUploadSuccess(result.orders);
-        onClose();
-      }
+      const forced = selectedPlatform === 'auto' ? undefined : selectedPlatform;
+      const res = await parseExcelOrders(incomingFile, forced, settings);
+      
+      // Auto-match cost items & bundle delivery
+      const processed = processAllOrders(res.orders, costItems, settings);
+      setParsedPreview({
+        orders: processed,
+        detectedPlatform: res.detectedPlatform,
+      });
     } catch (err: any) {
       console.error(err);
-      setErrorMsg(err.message || '엑셀 분석 중 오류가 발생했습니다.');
+      setErrorMsg(err.message || '엑셀 파일을 읽는 중 오류가 발생했습니다.');
+      setParsedPreview(null);
     } finally {
       setIsProcessing(false);
     }
   };
 
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileChange(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleConfirmImport = () => {
+    if (!parsedPreview || parsedPreview.orders.length === 0) return;
+    onImportOrders(parsedPreview.orders, appendMode);
+    onClose();
+  };
+
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col p-6 animate-in fade-in zoom-in duration-150">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
           <div className="flex items-center space-x-2">
-            <FileSpreadsheet className="w-5 h-5 text-indigo-600" />
-            <h3 className="font-bold text-slate-900 text-lg">정산 엑셀 파일 업로드</h3>
+            <UploadCloud className="w-5 h-5 text-indigo-600" />
+            <h3 className="text-base font-bold text-slate-900">쇼핑몰 정산 엑셀 파일 업로드</h3>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-sm font-bold">
+            ✕
           </button>
         </div>
 
-        <div className="space-y-5">
+        {/* Modal Content */}
+        <div className="flex-1 overflow-y-auto space-y-4 text-xs pr-1">
+          {/* Platform Selector */}
           <div>
-            <label className="block text-xs font-bold text-slate-500 mb-2">1. 쇼핑몰 플랫폼 선택</label>
-            <div className="grid grid-cols-3 gap-2">
-              {PLATFORMS.map((platform) => (
+            <label className="block font-bold text-slate-800 mb-1.5">
+              업로드할 쇼핑몰 플랫폼 선택:
+            </label>
+            <div className="grid grid-cols-4 gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedPlatform('auto')}
+                className={`p-2 rounded-lg border text-center font-bold transition-all cursor-pointer ${
+                  selectedPlatform === 'auto'
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 mx-auto mb-0.5" />
+                자동 감지
+              </button>
+              {Object.values(PLATFORMS).map((p) => (
                 <button
-                  key={platform.id}
+                  key={p.id}
                   type="button"
-                  onClick={() => setSelectedPlatform(platform.id)}
-                  className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer ${
-                    selectedPlatform === platform.id
-                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                  onClick={() => setSelectedPlatform(p.id)}
+                  className={`p-2 rounded-lg border text-center font-semibold transition-all cursor-pointer ${
+                    selectedPlatform === p.id
+                      ? `${p.bgColor} ${p.textColor} ${p.borderColor} font-bold shadow-xs`
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                   }`}
                 >
-                  {platform.name}
+                  {p.shortName}
                 </button>
               ))}
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-500 mb-2">2. 엑셀 파일 첨부 (.xlsx / .xls)</label>
-            <label className="border-2 border-dashed border-slate-200 hover:border-indigo-500 bg-slate-50 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-colors">
-              <Upload className="w-8 h-8 text-indigo-500 mb-2" />
-              <span className="text-sm font-bold text-slate-700">
-                {file ? file.name : '클릭하여 엑셀 파일 선택'}
-              </span>
-              <span className="text-xs text-slate-400 mt-1">스마트스토어, 쿠팡 등 정산 내역 다운로드 파일</span>
-              <input
-                type="file"
-                accept=".xlsx, .xls, .csv"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-            </label>
+          {/* Dropzone */}
+          <div
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className="border-2 border-dashed border-slate-300 hover:border-indigo-500 bg-slate-50/60 hover:bg-indigo-50/30 rounded-xl p-8 text-center cursor-pointer transition-all"
+          >
+            <FileSpreadsheet className="w-10 h-10 mx-auto text-indigo-500 mb-2" />
+            <p className="font-bold text-slate-800 text-sm">
+              {file ? file.name : '엑셀 파일(.xlsx, .xls, .csv)을 드래그하거나 클릭하여 선택하세요'}
+            </p>
+            <p className="text-slate-500 text-[11px] mt-1">
+              스마트스토어, 쿠팡, 오늘의집, 자사몰, 11번가, G마켓, 옥션 원본 정산 엑셀 지원
+            </p>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={(e) => e.target.files?.[0] && handleFileChange(e.target.files[0])}
+              accept=".xlsx, .xls, .csv"
+              className="hidden"
+            />
           </div>
 
+          {/* Loading Indicator */}
+          {isProcessing && (
+            <div className="flex items-center justify-center py-4 space-x-2 text-indigo-600 font-semibold">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>엑셀 데이터를 분석하고 원가를 자동 매칭 중입니다...</span>
+            </div>
+          )}
+
+          {/* Error Message */}
           {errorMsg && (
-            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-600 text-xs flex items-center space-x-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
+            <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 flex items-start space-x-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
               <span>{errorMsg}</span>
             </div>
           )}
 
-          <div className="pt-2 flex justify-end space-x-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all"
-            >
-              취소
-            </button>
-            <button
-              type="button"
-              disabled={!file || isProcessing}
-              onClick={handleUpload}
-              className={`px-5 py-2.5 rounded-xl font-bold text-xs text-white transition-all flex items-center space-x-1.5 ${
-                !file || isProcessing
-                  ? 'bg-slate-300 cursor-not-allowed'
-                  : 'bg-indigo-600 hover:bg-indigo-500 shadow-md cursor-pointer'
-              }`}
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{isProcessing ? '엑셀 분석 중...' : '정산 데이터 가져오기'}</span>
-            </button>
-          </div>
+          {/* Parsed Preview */}
+          {parsedPreview && (
+            <div className="space-y-2 border border-slate-200 rounded-xl p-3 bg-slate-50">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-900 flex items-center">
+                  <Check className="w-4 h-4 text-emerald-600 mr-1" />
+                  파싱 완료: 총 {parsedPreview.orders.length}개 주문 데이터 감지됨 (플랫폼:{' '}
+                  {PLATFORMS[parsedPreview.detectedPlatform]?.name || parsedPreview.detectedPlatform})
+                </span>
+                <span className="text-[11px] text-slate-500 font-medium">
+                  원가 매칭률:{' '}
+                  {parsedPreview.orders.length > 0
+                    ? Math.round(
+                        (parsedPreview.orders.filter((o) => o.isCostMatched).length /
+                          parsedPreview.orders.length) *
+                          100
+                      )
+                    : 0}
+                  %
+                </span>
+              </div>
+
+              {/* Mini preview table */}
+              <div className="max-h-40 overflow-y-auto bg-white rounded-lg border border-slate-200">
+                <table className="min-w-full text-[11px]">
+                  <thead className="bg-slate-100 text-slate-700 sticky top-0 font-bold">
+                    <tr>
+                      <th className="py-1.5 px-2 text-left">일자</th>
+                      <th className="py-1.5 px-2 text-left">상품명</th>
+                      <th className="py-1.5 px-2 text-left">수취인</th>
+                      <th className="py-1.5 px-2 text-right">판매금액</th>
+                      <th className="py-1.5 px-2 text-right">매입원가</th>
+                      <th className="py-1.5 px-2 text-right font-bold text-indigo-700">순수익</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {parsedPreview.orders.slice(0, 5).map((ord, idx) => (
+                      <tr key={idx}>
+                        <td className="py-1 px-2">{ord.orderDate}</td>
+                        <td className="py-1 px-2 font-medium truncate max-w-[150px]">{ord.productName}</td>
+                        <td className="py-1 px-2">{ord.recipient}</td>
+                        <td className="py-1 px-2 text-right">{formatKRW(ord.totalPrice)}</td>
+                        <td className="py-1 px-2 text-right text-rose-800">
+                          {ord.unitCost > 0 ? formatKRW(ord.unitCost) : '미등록'}
+                        </td>
+                        <td className="py-1 px-2 text-right font-bold text-indigo-700">{formatKRW(ord.netProfit)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {parsedPreview.orders.length > 5 && (
+                <p className="text-[10px] text-slate-400 text-center">
+                  외 {parsedPreview.orders.length - 5}건 추가 데이터
+                </p>
+              )}
+
+              {/* Append vs Replace Option */}
+              <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
+                <span className="font-semibold text-slate-700">가져오기 방식:</span>
+                <div className="flex space-x-3">
+                  <label className="flex items-center space-x-1 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="importMode"
+                      checked={appendMode}
+                      onChange={() => setAppendMode(true)}
+                      className="text-indigo-600"
+                    />
+                    <span className="text-slate-800 font-medium">기존 데이터에 추가</span>
+                  </label>
+                  <label className="flex items-center space-x-1 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="importMode"
+                      checked={!appendMode}
+                      onChange={() => setAppendMode(false)}
+                      className="text-indigo-600"
+                    />
+                    <span className="text-slate-800 font-medium">기존 데이터 교체</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Modal Footer */}
+        <div className="pt-4 border-t border-slate-100 flex justify-end space-x-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-100 font-medium"
+          >
+            닫기
+          </button>
+          <button
+            type="button"
+            disabled={!parsedPreview || parsedPreview.orders.length === 0}
+            onClick={handleConfirmImport}
+            className="px-4 py-2 rounded-lg font-bold bg-indigo-600 text-white hover:bg-indigo-700 shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            정산 데이터에 반영하기
+          </button>
         </div>
       </div>
     </div>
