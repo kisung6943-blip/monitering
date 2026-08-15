@@ -1,5 +1,8 @@
-node_modules
-.env
-dist
+node_modules/
+build/
+dist/
+coverage/
 .DS_Store
-products.json
+*.log
+.env*
+!.env.example

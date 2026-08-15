@@ -31,7 +31,18 @@ export default function DailyCalculator() {
 
   const [orders, setOrders] = useState<SettlementOrder[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.ORDERS);
+<<<<<<< HEAD
     return saved ? JSON.parse(saved) : [];
+=======
+    if (!saved) return [];
+    try {
+      const raw = JSON.parse(saved);
+      const master = JSON.parse(localStorage.getItem(STORAGE_KEYS.COST_MASTER) || '[]');
+      return raw.map((o: any) => calculateOrderMetrics(o, master, o.adSpend));
+    } catch (e) {
+      return [];
+    }
+>>>>>>> d99734d
   });
 
   const [costMaster, setCostMaster] = useState<CostMasterItem[]>(() => {
@@ -155,8 +166,18 @@ export default function DailyCalculator() {
       try {
         const content = e.target?.result as string;
         const parsed = JSON.parse(content);
+<<<<<<< HEAD
         if (parsed.orders) setOrders(parsed.orders);
         if (parsed.costMaster) setCostMaster(parsed.costMaster);
+=======
+        const importedMaster: CostMasterItem[] = parsed.costMaster || parsed.costItems || [];
+        if (importedMaster.length > 0) setCostMaster(importedMaster);
+
+        if (parsed.orders && Array.isArray(parsed.orders)) {
+          const recalculated = parsed.orders.map((o: any) => calculateOrderMetrics(o, importedMaster, o.adSpend));
+          setOrders(recalculated);
+        }
+>>>>>>> d99734d
         if (parsed.settings) setSettings(parsed.settings);
         alert('백업 데이터가 성공적으로 복구되었습니다!');
       } catch (err) {

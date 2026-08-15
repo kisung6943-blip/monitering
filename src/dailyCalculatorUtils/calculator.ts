@@ -40,6 +40,7 @@ export function findMatchingCost(
 }
 
 export function calculateOrderMetrics(
+<<<<<<< HEAD
   order: Partial<SettlementOrder>,
   costMaster: CostMasterItem[],
   allocatedAdSpend: number = 0
@@ -61,6 +62,30 @@ export function calculateOrderMetrics(
 
   return {
     id: order.id || `order_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+=======
+  order: Partial<SettlementOrder> & Record<string, any>,
+  costMaster: CostMasterItem[],
+  allocatedAdSpend: number = 0
+): SettlementOrder {
+  const quantity = Number(order.quantity) || 1;
+  const salesAmount = Number(order.salesAmount ?? order.totalPrice ?? (order.unitPrice ? order.unitPrice * quantity : 0)) || 0;
+  const feeAmount = Number(order.feeAmount) || 0;
+  const settlementAmount = Number(order.settlementAmount ?? (salesAmount - feeAmount)) || 0;
+
+  const costPerUnit =
+    order.costPerUnit !== undefined && order.costPerUnit > 0
+      ? Number(order.costPerUnit)
+      : findMatchingCost(order.productName || '', order.optionName || '', costMaster);
+
+  const totalCost = Number(order.totalCost ?? (quantity * costPerUnit)) || 0;
+  const adSpend = Number(allocatedAdSpend || order.adSpend) || 0;
+  const netProfit = Number(order.netProfit ?? (settlementAmount - totalCost - adSpend)) || 0;
+  const rawMargin = salesAmount > 0 ? (netProfit / salesAmount) * 100 : 0;
+  const marginRate = isNaN(rawMargin) ? 0 : rawMargin;
+
+  return {
+    id: order.id || `order_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+>>>>>>> d99734d
     platform: order.platform || 'smartstore',
     orderDate: order.orderDate || new Date().toISOString().split('T')[0],
     settlementDate: order.settlementDate,

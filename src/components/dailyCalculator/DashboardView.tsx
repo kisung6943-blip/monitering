@@ -10,6 +10,7 @@ interface DashboardViewProps {
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({ orders, selectedMonth }) => {
+<<<<<<< HEAD
   const totalSales = orders.reduce((sum, o) => sum + o.salesAmount, 0);
   const totalSettlement = orders.reduce((sum, o) => sum + o.settlementAmount, 0);
   const totalCost = orders.reduce((sum, o) => sum + o.totalCost, 0);
@@ -24,18 +25,47 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ orders, selectedMo
     const settlement = platformOrders.reduce((sum, o) => sum + o.settlementAmount, 0);
     const cost = platformOrders.reduce((sum, o) => sum + o.totalCost, 0);
     const adSpend = platformOrders.reduce((sum, o) => sum + o.adSpend, 0);
+=======
+  const getSales = (o: any) => Number(o.salesAmount ?? o.totalPrice ?? (o.unitPrice ? o.unitPrice * o.quantity : 0)) || 0;
+  const getSettlement = (o: any) => Number(o.settlementAmount) || 0;
+  const getCost = (o: any) => Number(o.totalCost) || 0;
+  const getAdSpend = (o: any) => Number(o.adSpend) || 0;
+
+  const totalSales = orders.reduce((sum, o) => sum + getSales(o), 0);
+  const totalSettlement = orders.reduce((sum, o) => sum + getSettlement(o), 0);
+  const totalCost = orders.reduce((sum, o) => sum + getCost(o), 0);
+  const totalAdSpend = orders.reduce((sum, o) => sum + getAdSpend(o), 0);
+  const totalNetProfit = totalSettlement - totalCost - totalAdSpend;
+  const overallMarginRate = totalSales > 0 ? (totalNetProfit / totalSales) * 100 : 0;
+  const totalOrdersCount = orders.reduce((sum, o) => sum + (Number(o.quantity) || 1), 0);
+
+  const platformStats = PLATFORMS.map((platform) => {
+    const platformOrders = orders.filter((o) => o.platform === platform.id);
+    const sales = platformOrders.reduce((sum, o) => sum + getSales(o), 0);
+    const settlement = platformOrders.reduce((sum, o) => sum + getSettlement(o), 0);
+    const cost = platformOrders.reduce((sum, o) => sum + getCost(o), 0);
+    const adSpend = platformOrders.reduce((sum, o) => sum + getAdSpend(o), 0);
+>>>>>>> d99734d
     const netProfit = settlement - cost - adSpend;
     const marginRate = sales > 0 ? (netProfit / sales) * 100 : 0;
 
     return {
       ...platform,
+<<<<<<< HEAD
       orderCount: platformOrders.reduce((sum, o) => sum + o.quantity, 0),
+=======
+      orderCount: platformOrders.reduce((sum, o) => sum + (Number(o.quantity) || 1), 0),
+>>>>>>> d99734d
       sales,
       settlement,
       cost,
       adSpend,
       netProfit,
+<<<<<<< HEAD
       marginRate,
+=======
+      marginRate: isNaN(marginRate) ? 0 : marginRate,
+>>>>>>> d99734d
       share: totalSales > 0 ? (sales / totalSales) * 100 : 0,
     };
   }).filter((p) => p.orderCount > 0 || p.sales > 0);
