@@ -1,0 +1,32 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) || process?.env?.VITE_SUPABASE_URL || 'https://mpaelpzhxyuxowlphrbb.supabase.co';
+const supabaseAnonKey = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY) || process?.env?.VITE_SUPABASE_ANON_KEY || 'sb_publishable_mnQBizZcqfJpJ0wluNNp1Q_2_GmfXEY';
+
+let supabaseInstance: any = null;
+
+if (supabaseUrl && supabaseAnonKey) {
+  try {
+    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
+  } catch (err) {
+    console.error("Failed to initialize Supabase client:", err);
+  }
+}
+
+if (!supabaseInstance) {
+  console.warn("Supabase credentials missing or invalid. Falling back to local storage mode.");
+  supabaseInstance = {
+    from: () => ({
+      select: () => Promise.resolve({ data: null, error: new Error("Supabase not configured") }),
+      upsert: () => Promise.resolve({ error: new Error("Supabase not configured") }),
+      insert: () => Promise.resolve({ error: new Error("Supabase not configured") }),
+      delete: () => Promise.resolve({ error: new Error("Supabase not configured") }),
+      update: () => Promise.resolve({ error: new Error("Supabase not configured") }),
+      eq: () => ({
+        single: () => Promise.resolve({ data: null, error: new Error("Supabase not configured") })
+      })
+    })
+  };
+}
+
+export const supabase = supabaseInstance;

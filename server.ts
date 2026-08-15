@@ -8,8 +8,11 @@ import cron from "node-cron";
 import { GoogleGenAI, Type } from "@google/genai";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
+import fs from "fs-extra";
 
 dotenv.config();
+
+const PRODUCTS_FILE = path.join(process.cwd(), "products.json");
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 const supabase = createClient(
@@ -25,23 +28,40 @@ async function getProducts() {
       .eq('id', 1)
       .single();
     
-    if (error || !data) return [];
+    if (error) {
+      console.warn("Supabase read error, falling back to local file:", error.message || error);
+      if (await fs.pathExists(PRODUCTS_FILE)) {
+        return await fs.readJson(PRODUCTS_FILE);
+      }
+      return [];
+    }
+    if (!data) return [];
     return data.data;
-  } catch (err) {
-    console.error("Error reading products from Supabase:", err);
+  } catch (err: any) {
+    console.error("Error reading products from Supabase, falling back to local file:", err.message || err);
+    if (await fs.pathExists(PRODUCTS_FILE)) {
+      return await fs.readJson(PRODUCTS_FILE);
+    }
     return [];
   }
 }
 
 async function saveProducts(products: any) {
+  // Always save to local file as backup/local storage
+  try {
+    await fs.writeJson(PRODUCTS_FILE, products, { spaces: 2 });
+  } catch (err) {
+    console.error("Error saving products to local file:", err);
+  }
+
   try {
     const { error } = await supabase
       .from('products')
       .upsert({ id: 1, data: products });
     
-    if (error) console.error("Supabase Save Error:", error);
-  } catch (err) {
-    console.error("Error saving products to Supabase:", err);
+    if (error) console.error("Supabase Save Error:", error.message || error);
+  } catch (err: any) {
+    console.error("Error saving products to Supabase:", err.message || err);
   }
 }
 
