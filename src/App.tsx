@@ -18,6 +18,7 @@ import CoupangItemMarginCalc from "./components/CoupangItemMarginCalc";
 import CoupangCouponManager from "./components/CoupangCouponManager";
 import { CoupangEndLohasCalc } from "./components/CoupangEndLohas/CoupangEndLohasCalc";
 import { callGeminiGenerateContent } from "./utils/geminiApi";
+import DailyCalculator from "./components/dailyCalculator/DailyCalculator";
 
 export default function App() {
   // State for products and price logs
@@ -2162,24 +2163,40 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
         </div>
       </div>
 
-      {/* Coupang Item Margin Calculator Section (User requested app) */}
+      {/* Coupang Item Margin Calculator Section */}
       <div className="border-t-4 border-blue-500 bg-slate-100 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <CoupangItemMarginCalc />
         </div>
       </div>
 
-      {/* Coupang Coupon Manager Section (User requested app https://coupon-indol.vercel.app) */}
+      {/* Coupang Coupon Manager Section */}
       <div className="border-t-4 border-rose-500 bg-slate-100 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <CoupangCouponManager />
         </div>
       </div>
 
-      {/* Coupang END LOHAS Calculator Section (User requested app https://coupang-end-lohas.vercel.app) */}
+      {/* Coupang END LOHAS Calculator Section */}
       <div className="border-t-4 border-blue-600 bg-slate-100 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <CoupangEndLohasCalc />
+        </div>
+      </div>
+
+      {/* Daily Calculator (쇼핑몰 판매자 전용 일일 정산 계산기) Integration Section */}
+      <div className="border-t-4 border-indigo-500 bg-slate-50 py-8 px-4 sm:px-6 lg:px-8" id="daily-calculator-section">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-6 flex items-center gap-2 border-b border-slate-200 pb-4">
+            <div className="bg-indigo-600 text-white p-2 rounded-lg font-bold shadow-md flex items-center justify-center">
+              <span className="text-xl">📊</span>
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">쇼핑몰 일일 정산 및 마진 계산기</h2>
+              <p className="text-xs text-slate-500">스마트스토어, 쿠팡, 오늘의집, 자사몰, 11번가, G마켓, 옥션 정산 및 순이익 자동 통합 계산</p>
+            </div>
+          </div>
+          <DailyCalculator />
         </div>
       </div>
 
