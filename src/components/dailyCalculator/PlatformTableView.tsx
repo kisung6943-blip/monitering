@@ -151,7 +151,7 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
                     </td>
                     <td className="py-3.5 px-3 text-center font-bold text-slate-700">{order.quantity}</td>
                     <td className="py-3.5 px-4 text-right font-semibold text-slate-800">
-                      {formatKRW(order.salesAmount)}
+                      {formatKRW(order.salesAmount ?? (order as any).totalPrice ?? 0)}
                     </td>
                     <td className="py-3.5 px-4 text-right font-semibold text-emerald-600">
                       {formatKRW(order.settlementAmount)}

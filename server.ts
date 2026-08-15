@@ -3,17 +3,17 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
+import fs from "fs-extra";
 
 dotenv.config();
 
-// Lazy initialization of Gemini AI to prevent startup crashes if key is missing
 let aiClient: GoogleGenAI | null = null;
 
 function getGeminiClient(): GoogleGenAI {
   if (!aiClient) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      throw new Error("GEMINI_API_KEY environment variable is required to parse price details with AI.");
+      throw new Error("GEMINI_API_KEY environment variable is required.");
     }
     aiClient = new GoogleGenAI({
       apiKey,
