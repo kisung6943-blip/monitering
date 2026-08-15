@@ -1,20 +1,12 @@
-import React, { useState } from 'react';
-import { 
-  Percent, 
-  Receipt, 
-  RotateCcw, 
-  Save, 
-  Settings, 
-  Truck 
-} from 'lucide-react';
-import { DEFAULT_SETTINGS } from '../../dailyCalculatorData/initialData';
-import { SettlementSettings } from '../../dailyCalculatorTypes';
+import React from 'react';
+import { X, Save, Settings } from 'lucide-react';
+import { GlobalSettings } from '../../dailyCalculatorTypes';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  settings: SettlementSettings;
-  onSaveSettings: (newSettings: SettlementSettings) => void;
+  settings: GlobalSettings;
+  onSaveSettings: (newSettings: GlobalSettings) => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -23,246 +15,77 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   settings,
   onSaveSettings,
 }) => {
-  const [formState, setFormState] = useState<SettlementSettings>({ ...settings });
+  const [vatIncluded, setVatIncluded] = React.useState(settings.vatIncludedInCost);
+  const [taxRate, setTaxRate] = React.useState(settings.corporateTaxRate);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSaveSettings(formState);
+    onSaveSettings({
+      ...settings,
+      vatIncludedInCost: vatIncluded,
+      corporateTaxRate: Number(taxRate),
+    });
     onClose();
   };
 
-  const handleResetDefaults = () => {
-    if (confirm('기본 정산 설정값으로 복원하시겠습니까?')) {
-      setFormState({ ...DEFAULT_SETTINGS });
-    }
-  };
-
   return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-6 animate-in fade-in zoom-in duration-150">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
           <div className="flex items-center space-x-2">
             <Settings className="w-5 h-5 text-indigo-600" />
-            <h3 className="text-base font-bold text-slate-900">정산 및 세무 환경설정</h3>
+            <h3 className="font-bold text-slate-900 text-lg">정산 및 계산 옵션 설정</h3>
           </div>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 text-sm font-bold"
-          >
-            ✕
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5 text-xs">
-          {/* 1. Basic Expense Rates (포장비, 실택배비) */}
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-            <h4 className="font-bold text-slate-800 flex items-center text-xs">
-              <Truck className="w-4 h-4 mr-1.5 text-indigo-600" />
-              기본 배송 및 포장 비용 설정
-            </h4>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  기본 포장비 (원/건)
-                </label>
-                <input
-                  type="number"
-                  value={formState.defaultPackagingCost}
-                  onChange={(e) =>
-                    setFormState({
-                      ...formState,
-                      defaultPackagingCost: Number(e.target.value) || 0,
-                    })
-                  }
-                  className="w-full p-2 border border-slate-300 rounded-lg bg-white font-bold text-slate-900"
-                />
-                <span className="text-[11px] text-slate-500 mt-0.5 block">기본 500원</span>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  실제 계약 택배비 (원/건)
-                </label>
-                <input
-                  type="number"
-                  value={formState.defaultActualShippingCost}
-                  onChange={(e) =>
-                    setFormState({
-                      ...formState,
-                      defaultActualShippingCost: Number(e.target.value) || 0,
-                    })
-                  }
-                  className="w-full p-2 border border-slate-300 rounded-lg bg-white font-bold text-slate-900"
-                />
-                <span className="text-[11px] text-slate-500 mt-0.5 block">기본 1,900원</span>
-              </div>
-            </div>
-
-            {/* Bundle shipping checkbox */}
-            <div className="pt-2 border-t border-slate-200">
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formState.autoBundleShipping}
-                  onChange={(e) =>
-                    setFormState({
-                      ...formState,
-                      autoBundleShipping: e.target.checked,
-                    })
-                  }
-                  className="w-4 h-4 text-indigo-600 rounded"
-                />
-                <span className="font-semibold text-slate-800">
-                  동일 고객 다건 주문 자동 합배송 정산 (2번째 품목부터 실택배비 0원)
-                </span>
-              </label>
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <label className="flex items-center space-x-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={vatIncluded}
+                onChange={(e) => setVatIncluded(e.target.checked)}
+                className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+              />
+              <span className="text-sm font-semibold text-slate-800">
+                입력 원가에 부가세(10%)가 포함되어 있음
+              </span>
+            </label>
+            <p className="text-xs text-slate-400 pl-7">
+              체크 해제 시 원가 입력금액에 부가세 10%가 별도로 합산되어 계산됩니다.
+            </p>
           </div>
 
-          {/* 2. Tax Settings (종합소득세, 부가세) */}
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-            <h4 className="font-bold text-slate-800 flex items-center text-xs">
-              <Receipt className="w-4 h-4 mr-1.5 text-indigo-600" />
-              세무 및 세금 공제 설정
-            </h4>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  종합소득세 예상 세율 (%)
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={formState.defaultIncomeTaxRate}
-                    onChange={(e) =>
-                      setFormState({
-                        ...formState,
-                        defaultIncomeTaxRate: Number(e.target.value) || 0,
-                      })
-                    }
-                    className="w-full p-2 pr-7 border border-slate-300 rounded-lg bg-white font-bold text-slate-900"
-                  />
-                  <span className="absolute right-2.5 top-2 font-bold text-slate-400">%</span>
-                </div>
-                <span className="text-[11px] text-slate-500 mt-0.5 block">기본 10% (과세표준에 따라 조정)</span>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  부가세 차감 방식
-                </label>
-                <select
-                  value={formState.vatCalculationMethod}
-                  onChange={(e) =>
-                    setFormState({
-                      ...formState,
-                      vatCalculationMethod: e.target.value as any,
-                    })
-                  }
-                  className="w-full p-2 border border-slate-300 rounded-lg bg-white font-medium text-slate-900"
-                >
-                  <option value="simple10">10% 일괄 공제 (순익 × 90%)</option>
-                  <option value="standard">표준 산출 (매출부가세 - 매입부가세)</option>
-                </select>
-                <span className="text-[11px] text-slate-500 mt-0.5 block">엑셀 수식 기반 10% 차감</span>
-              </div>
-            </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 mb-1">법인세/소득세 추정 세율 (%)</label>
+            <input
+              type="number"
+              value={taxRate}
+              onChange={(e) => setTaxRate(Number(e.target.value))}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
           </div>
 
-          {/* 3. Platform Specific Fees */}
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-            <h4 className="font-bold text-slate-800 flex items-center text-xs">
-              <Percent className="w-4 h-4 mr-1.5 text-indigo-600" />
-              플랫폼별 기본 수수료율 설정
-            </h4>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block font-medium text-slate-700 mb-1">쿠팡 일반 수수료 (%)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={formState.coupangDefaultFee}
-                  onChange={(e) =>
-                    setFormState({ ...formState, coupangDefaultFee: Number(e.target.value) || 0 })
-                  }
-                  className="w-full p-1.5 border rounded bg-white"
-                />
-              </div>
-
-              <div>
-                <label className="block font-medium text-slate-700 mb-1">쿠팡 쌀/양곡 수수료 (%)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={formState.coupangRiceFee}
-                  onChange={(e) =>
-                    setFormState({ ...formState, coupangRiceFee: Number(e.target.value) || 0 })
-                  }
-                  className="w-full p-1.5 border rounded bg-white text-emerald-700 font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block font-medium text-slate-700 mb-1">자사몰 PG 수수료 (%)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formState.homepageFee}
-                  onChange={(e) =>
-                    setFormState({ ...formState, homepageFee: Number(e.target.value) || 0 })
-                  }
-                  className="w-full p-1.5 border rounded bg-white"
-                />
-              </div>
-
-              <div>
-                <label className="block font-medium text-slate-700 mb-1">오늘의집 기본 수수료 (%)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={formState.ohouseDefaultFee}
-                  onChange={(e) =>
-                    setFormState({ ...formState, ohouseDefaultFee: Number(e.target.value) || 0 })
-                  }
-                  className="w-full p-1.5 border rounded bg-white"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Footer Buttons */}
-          <div className="flex items-center justify-between pt-3 border-t border-slate-200">
+          <div className="pt-4 border-t border-slate-100 flex justify-end space-x-2">
             <button
               type="button"
-              onClick={handleResetDefaults}
-              className="inline-flex items-center text-slate-500 hover:text-slate-800 font-medium cursor-pointer"
+              onClick={onClose}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all"
             >
-              <RotateCcw className="w-3.5 h-3.5 mr-1" />
-              기본값으로 복원
+              취소
             </button>
-
-            <div className="flex space-x-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-100 cursor-pointer"
-              >
-                닫기
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 rounded-lg font-bold bg-indigo-600 text-white hover:bg-indigo-700 shadow-xs cursor-pointer inline-flex items-center"
-              >
-                <Save className="w-4 h-4 mr-1.5" />
-                설정 저장 및 전체 재계산
-              </button>
-            </div>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition-all flex items-center space-x-1"
+            >
+              <Save className="w-4 h-4" />
+              <span>설정 저장</span>
+            </button>
           </div>
         </form>
       </div>
