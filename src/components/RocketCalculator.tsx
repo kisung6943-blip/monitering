@@ -29,30 +29,64 @@ import * as XLSX from 'xlsx';
 
 const mergeAllProductSources = (...sources: any[][]): ProductMaster[] => {
   const map = new Map<string, ProductMaster>();
+
+  const initialByName = new Map<string, ProductMaster>();
+  INITIAL_PRODUCTS.forEach((p) => {
+    if (p.name) initialByName.set(p.name.trim(), p);
+  });
+
   sources.forEach((list) => {
     if (Array.isArray(list)) {
       list.forEach((p) => {
         if (p && p.name) {
-          const id = p.id || `prod-${p.name}`;
+          const trimmedName = p.name.trim();
+          const id = p.id || `prod-${trimmedName}`;
           const existingById = map.get(id);
-          const existingByName = Array.from(map.values()).find((item) => item.name === p.name);
+          const existingByName = Array.from(map.values()).find((item) => item.name === trimmedName);
           const existing = existingById || existingByName;
+
+          const initialMatch = initialByName.get(trimmedName);
+
+          const supplyPrice =
+            typeof p.supplyPrice === 'number' && p.supplyPrice > 0
+              ? p.supplyPrice
+              : existing?.supplyPrice && existing.supplyPrice > 0
+              ? existing.supplyPrice
+              : initialMatch?.supplyPrice || 0;
+
+          const unitCost =
+            typeof p.unitCost === 'number' && p.unitCost > 0
+              ? p.unitCost
+              : existing?.unitCost && existing.unitCost > 0
+              ? existing.unitCost
+              : initialMatch?.unitCost || 0;
+
+          const commissionRate =
+            typeof p.commissionRate === 'number'
+              ? p.commissionRate
+              : existing?.commissionRate ?? initialMatch?.commissionRate ?? 0;
+
+          const defaultOtherFee =
+            typeof p.defaultOtherFee === 'number'
+              ? p.defaultOtherFee
+              : existing?.defaultOtherFee ?? initialMatch?.defaultOtherFee ?? 0;
 
           const item: ProductMaster = {
             id: existing ? existing.id : id,
-            sku: p.sku || existing?.sku || `SKU-${id}`,
-            name: p.name,
-            category: p.category || existing?.category || '주방용품',
-            supplyPrice: p.supplyPrice ?? existing?.supplyPrice ?? 10000,
-            unitCost: p.unitCost ?? existing?.unitCost ?? 4000,
-            commissionRate: p.commissionRate ?? existing?.commissionRate ?? 10.8,
-            defaultOtherFee: p.defaultOtherFee ?? existing?.defaultOtherFee ?? 0,
+            sku: p.sku || existing?.sku || initialMatch?.sku || `SKU-${id}`,
+            name: trimmedName,
+            category: p.category || existing?.category || initialMatch?.category || '주방용품',
+            supplyPrice,
+            unitCost,
+            commissionRate,
+            defaultOtherFee,
           };
           map.set(item.id, item);
         }
       });
     }
   });
+
   return Array.from(map.values());
 };
 
@@ -70,7 +104,7 @@ export default function RocketCalculator() {
       if (saved2) p2 = JSON.parse(saved2);
     } catch (e) {}
 
-    const merged = mergeAllProductSources(p1, p2, INITIAL_PRODUCTS);
+    const merged = mergeAllProductSources(INITIAL_PRODUCTS, p1, p2);
     return merged;
   });
 
@@ -142,7 +176,7 @@ export default function RocketCalculator() {
           if (saved2) p2 = JSON.parse(saved2);
         } catch (e) {}
 
-        let merged = mergeAllProductSources(cloudProds || [], coupangProds || [], p1, p2, INITIAL_PRODUCTS);
+        let merged = mergeAllProductSources(INITIAL_PRODUCTS, p1, p2, coupangProds || [], cloudProds || []);
 
         if (cloudSettles && cloudSettles.length > 0) {
           setSettlements(cloudSettles);
