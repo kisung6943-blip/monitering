@@ -207,7 +207,7 @@ export const WeeklyPurchaseModal: React.FC<WeeklyPurchaseModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-5xl my-8 overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-7xl my-4 overflow-hidden flex flex-col max-h-[95vh]">
         {/* 모달 헤더 */}
         <div className="flex items-center justify-between p-5 bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 text-white">
           <div className="flex items-center space-x-3">
@@ -382,7 +382,7 @@ export const WeeklyPurchaseModal: React.FC<WeeklyPurchaseModalProps> = ({
                   <th className="p-3 font-bold text-right min-w-[95px]">주간 광고비(원)</th>
                   <th className="p-3 font-bold text-right min-w-[90px]">물류비(원)</th>
                   <th className="p-3 font-bold text-center min-w-[90px]">구분</th>
-                  <th className="p-3 font-bold text-center min-w-[50px]">삭제</th>
+                  <th className="p-3 font-bold text-center min-w-[60px] sticky right-0 bg-slate-100 dark:bg-slate-800 border-l border-slate-200 dark:border-slate-700 z-10 shadow-xs">삭제</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -525,7 +525,7 @@ export const WeeklyPurchaseModal: React.FC<WeeklyPurchaseModalProps> = ({
                             <option value="수시비정기">비정기</option>
                           </select>
                         </td>
-                        <td className="p-2 text-center">
+                        <td className="p-2 text-center sticky right-0 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-700 z-10 shadow-xs">
                           <button
                             type="button"
                             onClick={() => handleRemoveRow(row.productId, row.productName)}
