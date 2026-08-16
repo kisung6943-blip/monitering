@@ -8,7 +8,7 @@ interface WeeklyPurchaseModalProps {
   onClose: () => void;
   products: ProductMaster[];
   onBatchSaveWeeklyOrders: (newOrders: OrderSettlement[]) => void;
-  onDeleteProduct?: (id: string) => void;
+  onDeleteProduct?: (id: string, name?: string) => void;
 }
 
 interface WeeklyItemRow {
@@ -83,9 +83,9 @@ export const WeeklyPurchaseModal: React.FC<WeeklyPurchaseModalProps> = ({
 
   const handleRemoveRow = (productId: string, productName: string) => {
     if (confirm(`'${productName}' 품목을 상품 마스터 및 목록에서 삭제하시겠습니까?`)) {
-      setRows((prev) => prev.filter((r) => r.productId !== productId));
+      setRows((prev) => prev.filter((r) => r.productId !== productId && r.productName !== productName));
       if (onDeleteProduct) {
-        onDeleteProduct(productId);
+        onDeleteProduct(productId, productName);
       }
     }
   };

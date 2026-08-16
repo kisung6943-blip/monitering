@@ -461,16 +461,18 @@ export default function RocketCalculator() {
     );
   };
 
-  const handleDeleteProduct = async (id: string) => {
-    const target = products.find((p) => p.id === id);
-    const targetName = target ? target.name.trim() : undefined;
+  const handleDeleteProduct = async (id: string, name?: string) => {
+    const target = products.find((p) => p.id === id || (name && p.name.trim() === name.trim()));
+    const targetName = name?.trim() || (target ? target.name.trim() : undefined);
 
-    // 1. LocalStorage 차단 목록 추가
+    // 1. LocalStorage 차단 목록 추가 (ID 및 상품명 모두 차단)
     saveDeletedProduct(id, targetName);
 
-    // 2. 로컬 상태 및 LocalStorage 삭제 반영
+    // 2. 로컬 상태 및 LocalStorage 삭제 반영 (ID 및 동일 상품명 모두 제거)
     setProducts((prev) => {
-      const updated = prev.filter((p) => p.id !== id && (targetName ? p.name.trim() !== targetName : true));
+      const updated = prev.filter(
+        (p) => p.id !== id && (targetName ? p.name.trim() !== targetName : true)
+      );
       localStorage.setItem('coupang_products', JSON.stringify(updated));
       localStorage.setItem('price_monitor_products', JSON.stringify(updated));
       return updated;

@@ -9,7 +9,7 @@ interface ProductMasterModalProps {
   products: ProductMaster[];
   onAddProduct: (prod: ProductMaster) => void;
   onUpdateProduct: (prod: ProductMaster) => void;
-  onDeleteProduct: (id: string) => void;
+  onDeleteProduct: (id: string, name?: string) => void;
 }
 
 export const ProductMasterModal: React.FC<ProductMasterModalProps> = ({
@@ -211,7 +211,7 @@ export const ProductMasterModal: React.FC<ProductMasterModalProps> = ({
                           <button
                             onClick={() => {
                               if (confirm(`${p.name} 마스터를 삭제하시겠습니까?`)) {
-                                onDeleteProduct(p.id);
+                                onDeleteProduct(p.id, p.name);
                               }
                             }}
                             className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded"
