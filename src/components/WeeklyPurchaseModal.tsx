@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ProductMaster, OrderSettlement } from '../types';
 import { formatKRW, formatNumber } from '../utils/settlementUtils';
-import { X, Calendar, Plus, Save, CheckCircle2, DollarSign, PackageCheck, AlertCircle } from 'lucide-react';
+import { X, Calendar, Plus, Save, CheckCircle2, DollarSign, PackageCheck, AlertCircle, Search } from 'lucide-react';
 
 interface WeeklyPurchaseModalProps {
   isOpen: boolean;
@@ -56,6 +56,11 @@ export const WeeklyPurchaseModal: React.FC<WeeklyPurchaseModalProps> = ({
   };
 
   const [deliveryDate, setDeliveryDate] = useState<string>(getDefaultDeliveryDate(startDate));
+
+  // 검색 및 필터 상태
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [selectedProductIdFilter, setSelectedProductIdFilter] = useState<string>('all');
+  const [showOnlyEntered, setShowOnlyEntered] = useState<boolean>(false);
 
   // 상품별 입력 데이터 초기화
   const [rows, setRows] = useState<WeeklyItemRow[]>(() =>
@@ -114,10 +119,13 @@ export const WeeklyPurchaseModal: React.FC<WeeklyPurchaseModalProps> = ({
     setDeliveryDate(getDefaultDeliveryDate(newMonStr));
   };
 
-  // 행 값 변경 함수
-  const handleRowChange = (index: number, field: keyof WeeklyItemRow, value: any) => {
+  // 행 값 변경 함수 (productId 기반)
+  const handleRowChange = (productId: string, field: keyof WeeklyItemRow, value: any) => {
     setRows((prev) => {
       const copy = [...prev];
+      const index = copy.findIndex((r) => r.productId === productId);
+      if (index === -1) return prev;
+
       const updatedRow = { ...copy[index], [field]: value };
 
       // 발주수량 입력 시 납품수량이 0이면 동일하게 세팅 편의제공
@@ -249,30 +257,102 @@ export const WeeklyPurchaseModal: React.FC<WeeklyPurchaseModalProps> = ({
 
         {/* 메인 테이블 스크롤 영역 */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 space-y-4">
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-            <p>💡 발주수량 또는 납품수량이 1개 이상인 상품만 주간 매입 정산 건으로 일괄 등록됩니다.</p>
-            <div className="flex items-center space-x-2">
-              <span>빠른 수량 채우기:</span>
+          {/* 품목 검색 및 빠른 선택 / 일괄채우기 바 */}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-white dark:bg-slate-900 border border-indigo-100 dark:border-slate-800 rounded-xl shadow-sm">
+            {/* 품목 검색 및 빠른 선택 */}
+            <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[300px]">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="w-4 h-4 text-indigo-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="품목명/카테고리 검색..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    if (e.target.value) setSelectedProductIdFilter('all');
+                  }}
+                  className="w-full pl-9 pr-8 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* 드롭다운 빠른 선택 */}
+              <select
+                value={selectedProductIdFilter}
+                onChange={(e) => {
+                  setSelectedProductIdFilter(e.target.value);
+                  if (e.target.value !== 'all') setSearchTerm('');
+                }}
+                className="px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 max-w-[220px] truncate font-semibold cursor-pointer"
+              >
+                <option value="all">🔍 전체 품목 선택 이동 ({products.length}개)</option>
+                {products.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+
+              {/* 필터 리셋 버튼 */}
+              {(searchTerm || selectedProductIdFilter !== 'all' || showOnlyEntered) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setSelectedProductIdFilter('all');
+                    setShowOnlyEntered(false);
+                  }}
+                  className="px-2 py-1 text-xs text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-slate-800 rounded-lg font-semibold flex items-center gap-1 transition"
+                >
+                  <X className="w-3.5 h-3.5" /> 필터 해제
+                </button>
+              )}
+
+              {/* 입력중 품목만 보기 토글 */}
+              <button
+                type="button"
+                onClick={() => setShowOnlyEntered(!showOnlyEntered)}
+                className={`px-2.5 py-1.5 text-xs rounded-lg font-semibold transition-all border ${
+                  showOnlyEntered
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {showOnlyEntered ? '✓ 입력된 품목만 보는 중' : '입력중 품목만 보기'} ({validRows.length})
+              </button>
+            </div>
+
+            {/* 빠른 수량 채우기 */}
+            <div className="flex items-center space-x-1.5 text-xs text-slate-500 dark:text-slate-400 shrink-0">
+              <span className="font-semibold text-slate-600 dark:text-slate-300 text-[11px]">일괄 수량:</span>
               <button
                 type="button"
                 onClick={() => handleApplyAllQty(50)}
-                className="px-2 py-0.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 rounded text-slate-700 dark:text-slate-200 text-[11px]"
+                className="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded text-slate-700 dark:text-slate-200 text-[11px] font-medium transition"
               >
-                전품목 50개
+                50개
               </button>
               <button
                 type="button"
                 onClick={() => handleApplyAllQty(100)}
-                className="px-2 py-0.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 rounded text-slate-700 dark:text-slate-200 text-[11px]"
+                className="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded text-slate-700 dark:text-slate-200 text-[11px] font-medium transition"
               >
-                전품목 100개
+                100개
               </button>
               <button
                 type="button"
                 onClick={() => handleApplyAllQty(0)}
-                className="px-2 py-0.5 bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 rounded text-[11px]"
+                className="px-2 py-1 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-800 rounded text-[11px] font-medium hover:bg-rose-100 transition"
               >
-                초기화(0개)
+                초기화(0)
               </button>
             </div>
           </div>
@@ -294,117 +374,149 @@ export const WeeklyPurchaseModal: React.FC<WeeklyPurchaseModalProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                {rows.map((row, idx) => {
-                  const gross = row.deliveredQty * row.supplyPrice;
-                  const isSelected = row.orderQty > 0 || row.deliveredQty > 0;
+                {(() => {
+                  const filteredRows = rows.filter((r) => {
+                    if (searchTerm.trim()) {
+                      const q = searchTerm.trim().toLowerCase();
+                      const matchName = r.productName.toLowerCase().includes(q);
+                      const matchCat = r.category.toLowerCase().includes(q);
+                      if (!matchName && !matchCat) return false;
+                    }
+                    if (selectedProductIdFilter !== 'all' && r.productId !== selectedProductIdFilter) {
+                      return false;
+                    }
+                    if (showOnlyEntered && r.orderQty === 0 && r.deliveredQty === 0) {
+                      return false;
+                    }
+                    return true;
+                  });
 
-                  return (
-                    <tr
-                      key={row.productId}
-                      className={`transition ${
-                        isSelected
-                          ? 'bg-indigo-50/40 dark:bg-indigo-950/20 font-medium'
-                          : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                      }`}
-                    >
-                      <td className="p-2.5 text-slate-500 dark:text-slate-400 text-[11px]">
-                        {row.category}
-                      </td>
-                      <td className="p-2.5 font-semibold text-slate-900 dark:text-white">
-                        {row.productName}
-                      </td>
-                      <td className="p-2 text-center">
-                        <input
-                          type="number"
-                          min="0"
-                          value={row.orderQty === 0 ? '' : row.orderQty}
-                          placeholder="0"
-                          onChange={(e) =>
-                            handleRowChange(idx, 'orderQty', parseInt(e.target.value, 10) || 0)
-                          }
-                          className="w-20 text-center p-1.5 border border-slate-300 dark:border-slate-700 rounded bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 font-bold"
-                        />
-                      </td>
-                      <td className="p-2 text-center">
-                        <input
-                          type="number"
-                          min="0"
-                          value={row.deliveredQty === 0 ? '' : row.deliveredQty}
-                          placeholder="0"
-                          onChange={(e) =>
-                            handleRowChange(idx, 'deliveredQty', parseInt(e.target.value, 10) || 0)
-                          }
-                          className="w-20 text-center p-1.5 border border-slate-300 dark:border-slate-700 rounded bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 font-bold text-indigo-700 dark:text-indigo-300"
-                        />
-                      </td>
-                      <td className="p-2 text-right">
-                        <input
-                          type="number"
-                          min="0"
-                          step="100"
-                          value={row.supplyPrice}
-                          onChange={(e) =>
-                            handleRowChange(idx, 'supplyPrice', parseInt(e.target.value, 10) || 0)
-                          }
-                          className="w-24 text-right p-1.5 border border-slate-300 dark:border-slate-700 rounded bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 font-mono"
-                        />
-                      </td>
-                      <td className="p-2.5 text-right font-extrabold text-slate-900 dark:text-white font-mono">
-                        {formatKRW(gross)}
-                      </td>
-                      <td className="p-2 text-right">
-                        <input
-                          type="number"
-                          min="0"
-                          step="100"
-                          value={row.unitCost}
-                          onChange={(e) =>
-                            handleRowChange(idx, 'unitCost', parseInt(e.target.value, 10) || 0)
-                          }
-                          className="w-20 text-right p-1.5 border border-slate-300 dark:border-slate-700 rounded bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 font-mono text-slate-600 dark:text-slate-400"
-                        />
-                      </td>
-                      <td className="p-2 text-right">
-                        <input
-                          type="number"
-                          min="0"
-                          step="1000"
-                          value={row.adCost === 0 ? '' : row.adCost}
-                          placeholder="0"
-                          onChange={(e) =>
-                            handleRowChange(idx, 'adCost', parseInt(e.target.value, 10) || 0)
-                          }
-                          className="w-24 text-right p-1.5 border border-slate-300 dark:border-slate-700 rounded bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 font-mono text-amber-600 dark:text-amber-400 font-semibold"
-                        />
-                      </td>
-                      <td className="p-2 text-right">
-                        <input
-                          type="number"
-                          min="0"
-                          step="100"
-                          value={row.otherFee === 0 ? '' : row.otherFee}
-                          placeholder="0"
-                          onChange={(e) =>
-                            handleRowChange(idx, 'otherFee', parseInt(e.target.value, 10) || 0)
-                          }
-                          className="w-20 text-right p-1.5 border border-slate-300 dark:border-slate-700 rounded bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 font-mono text-slate-500"
-                        />
-                      </td>
-                      <td className="p-2 text-center">
-                        <select
-                          value={row.frequencyType}
-                          onChange={(e) =>
-                            handleRowChange(idx, 'frequencyType', e.target.value as any)
-                          }
-                          className="p-1 border border-slate-300 dark:border-slate-700 rounded bg-white dark:bg-slate-900 text-[11px]"
-                        >
-                          <option value="주간정기">주간정기</option>
-                          <option value="수시비정기">수시비정기</option>
-                        </select>
-                      </td>
-                    </tr>
-                  );
-                })}
+                  if (filteredRows.length === 0) {
+                    return (
+                      <tr>
+                        <td colSpan={10} className="text-center py-10 text-slate-400 font-medium">
+                          검색 조건에 일치하는 품목이 없습니다.
+                        </td>
+                      </tr>
+                    );
+                  }
+
+                  return filteredRows.map((row) => {
+                    const gross = row.deliveredQty * row.supplyPrice;
+                    const isSelected = row.orderQty > 0 || row.deliveredQty > 0;
+
+                    return (
+                      <tr
+                        key={row.productId}
+                        className={`transition ${
+                          isSelected
+                            ? 'bg-indigo-50/40 dark:bg-indigo-950/20 font-medium'
+                            : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                        }`}
+                      >
+                        <td className="p-2.5 text-slate-500 dark:text-slate-400 text-[11px]">
+                          {row.category}
+                        </td>
+                        <td className="p-2.5 font-semibold text-slate-900 dark:text-white">
+                          {row.productName}
+                        </td>
+                        <td className="p-2 text-center">
+                          <input
+                            type="number"
+                            min="0"
+                            value={row.orderQty === 0 ? '' : row.orderQty}
+                            placeholder="0"
+                            onChange={(e) =>
+                              handleRowChange(row.productId, 'orderQty', parseInt(e.target.value, 10) || 0)
+                            }
+                            className="w-20 text-center p-1.5 border border-slate-300 dark:border-slate-700 rounded bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 font-bold"
+                          />
+                        </td>
+                        <td className="p-2 text-center">
+                          <input
+                            type="number"
+                            min="0"
+                            value={row.deliveredQty === 0 ? '' : row.deliveredQty}
+                            placeholder="0"
+                            onChange={(e) =>
+                              handleRowChange(row.productId, 'deliveredQty', parseInt(e.target.value, 10) || 0)
+                            }
+                            className="w-20 text-center p-1.5 border border-slate-300 dark:border-slate-700 rounded bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 font-bold text-indigo-700 dark:text-indigo-300"
+                          />
+                        </td>
+                        <td className="p-2 text-right">
+                          <input
+                            type="number"
+                            min="0"
+                            step="100"
+                            value={row.supplyPrice}
+                            onChange={(e) =>
+                              handleRowChange(row.productId, 'supplyPrice', parseInt(e.target.value, 10) || 0)
+                            }
+                            className="w-24 text-right p-1.5 border border-slate-300 dark:border-slate-700 rounded bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 font-mono"
+                          />
+                        </td>
+                        <td className="p-2.5 text-right font-extrabold text-slate-900 dark:text-white font-mono">
+                          {formatKRW(gross)}
+                        </td>
+                        <td className="p-2 text-right">
+                          <input
+                            type="number"
+                            min="0"
+                            step="100"
+                            value={row.unitCost}
+                            onChange={(e) =>
+                              handleRowChange(row.productId, 'unitCost', parseInt(e.target.value, 10) || 0)
+                            }
+                            className="w-20 text-right p-1.5 border border-slate-300 dark:border-slate-700 rounded bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 font-mono text-slate-600 dark:text-slate-400"
+                          />
+                        </td>
+                        <td className="p-2 text-right">
+                          <input
+                            type="number"
+                            min="0"
+                            step="1000"
+                            value={row.adCost === 0 ? '' : row.adCost}
+                            placeholder="0"
+                            onChange={(e) =>
+                              handleRowChange(row.productId, 'adCost', parseInt(e.target.value, 10) || 0)
+                            }
+                            className="w-24 text-right p-1.5 border border-slate-300 dark:border-slate-700 rounded bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 font-mono text-amber-600 dark:text-amber-400 font-semibold"
+                          />
+                        </td>
+                        <td className="p-2 text-right">
+                          <input
+                            type="number"
+                            min="0"
+                            step="100"
+                            value={row.otherFee === 0 ? '' : row.otherFee}
+                            placeholder="0"
+                            onChange={(e) =>
+                              handleRowChange(row.productId, 'otherFee', parseInt(e.target.value, 10) || 0)
+                            }
+                            className="w-20 text-right p-1.5 border border-slate-300 dark:border-slate-700 rounded bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 font-mono text-slate-500"
+                          />
+                        </td>
+                        <td className="p-2 text-center">
+                          <select
+                            value={row.frequencyType}
+                            onChange={(e) =>
+                              handleRowChange(
+                                row.productId,
+                                'frequencyType',
+                                e.target.value as '주간정기' | '수시비정기'
+                              )
+                            }
+                            className="p-1 text-[11px] border border-slate-300 dark:border-slate-700 rounded bg-white dark:bg-slate-900"
+                          >
+                            <option value="주간정기">정기</option>
+                            <option value="수시비정기">비정기</option>
+                          </select>
+                        </td>
+                      </tr>
+                    );
+                  });
+                })()}
               </tbody>
             </table>
           </div>
