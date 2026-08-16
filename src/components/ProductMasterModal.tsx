@@ -25,10 +25,10 @@ export const ProductMasterModal: React.FC<ProductMasterModalProps> = ({
     sku: '',
     name: '',
     category: '식품',
-    supplyPrice: 10000,
-    unitCost: 4000,
-    commissionRate: 10.8,
-    defaultOtherFee: 300,
+    supplyPrice: 0,
+    unitCost: 0,
+    commissionRate: 0,
+    defaultOtherFee: 0,
   });
 
   if (!isOpen) return null;
@@ -44,10 +44,10 @@ export const ProductMasterModal: React.FC<ProductMasterModalProps> = ({
       sku: '',
       name: '',
       category: '식품',
-      supplyPrice: 10000,
-      unitCost: 4000,
-      commissionRate: 10.8,
-      defaultOtherFee: 300,
+      supplyPrice: 0,
+      unitCost: 0,
+      commissionRate: 0,
+      defaultOtherFee: 0,
     });
   };
 

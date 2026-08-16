@@ -46,20 +46,25 @@ const mergeAllProductSources = (...sources: any[][]): ProductMaster[] => {
           const existing = existingById || existingByName;
 
           const initialMatch = initialByName.get(trimmedName);
+          const isFakeDefault = p.supplyPrice === 10000 && p.unitCost === 4000;
 
-          const supplyPrice =
-            typeof p.supplyPrice === 'number' && p.supplyPrice > 0
-              ? p.supplyPrice
-              : existing?.supplyPrice && existing.supplyPrice > 0
-              ? existing.supplyPrice
-              : initialMatch?.supplyPrice || 0;
+          let supplyPrice = 0;
+          if (initialMatch) {
+            supplyPrice = initialMatch.supplyPrice;
+          } else if (!isFakeDefault && typeof p.supplyPrice === 'number' && p.supplyPrice > 0) {
+            supplyPrice = p.supplyPrice;
+          } else if (existing && existing.supplyPrice > 0) {
+            supplyPrice = existing.supplyPrice;
+          }
 
-          const unitCost =
-            typeof p.unitCost === 'number' && p.unitCost > 0
-              ? p.unitCost
-              : existing?.unitCost && existing.unitCost > 0
-              ? existing.unitCost
-              : initialMatch?.unitCost || 0;
+          let unitCost = 0;
+          if (initialMatch) {
+            unitCost = initialMatch.unitCost;
+          } else if (!isFakeDefault && typeof p.unitCost === 'number' && p.unitCost > 0) {
+            unitCost = p.unitCost;
+          } else if (existing && existing.unitCost > 0) {
+            unitCost = existing.unitCost;
+          }
 
           const commissionRate =
             typeof p.commissionRate === 'number'
