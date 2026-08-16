@@ -407,10 +407,19 @@ export default function RocketCalculator() {
   const handleUpdateProduct = (prod: ProductMaster) => {
     setProducts((prev) => prev.map((p) => (p.id === prod.id ? prod : p)));
     setSettlements((prev) =>
-      prev.map((s) => (s.productId === prod.id ? { ...s, productName: prod.name } : s))
+      prev.map((s) =>
+        s.productId === prod.id || s.productName === prod.name
+          ? {
+              ...s,
+              productName: prod.name,
+              supplyPrice: prod.supplyPrice > 0 ? prod.supplyPrice : s.supplyPrice,
+              unitCost: prod.unitCost > 0 ? prod.unitCost : s.unitCost,
+            }
+          : s
+      )
     );
     setDailyAdCosts((prev) =>
-      prev.map((a) => (a.productId === prod.id ? { ...a, productName: prod.name } : a))
+      prev.map((a) => (a.productId === prod.id || a.productName === prod.name ? { ...a, productName: prod.name } : a))
     );
   };
 
