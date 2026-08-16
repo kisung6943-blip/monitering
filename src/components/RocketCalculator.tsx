@@ -97,18 +97,45 @@ export default function RocketCalculator() {
         const { data: cloudSettles } = await supabase.from('coupang_settlements').select('*');
         const { data: cloudDailyAds } = await supabase.from('coupang_daily_ads').select('*');
 
+        let mergedProds: ProductMaster[] = cloudProds && cloudProds.length > 0 ? cloudProds : INITIAL_PRODUCTS;
+
         if (cloudSettles && cloudSettles.length > 0) {
           setSettlements(cloudSettles);
           localStorage.setItem('coupang_settlements', JSON.stringify(cloudSettles));
+
+          // Ensure any products present in settlements are also in product master list
+          const prodIdSet = new Set(mergedProds.map((p) => p.id));
+          const prodNameSet = new Set(mergedProds.map((p) => p.name));
+          const extraProds: ProductMaster[] = [];
+
+          cloudSettles.forEach((s) => {
+            if (s.productId && s.productName && !prodIdSet.has(s.productId) && !prodNameSet.has(s.productName)) {
+              prodIdSet.add(s.productId);
+              prodNameSet.add(s.productName);
+              extraProds.push({
+                id: s.productId,
+                sku: `SKU-${s.productId}`,
+                name: s.productName,
+                category: s.category || '주방용품',
+                supplyPrice: s.supplyPrice || 0,
+                unitCost: s.unitCost || 0,
+                commissionRate: s.commissionRate || 0,
+                defaultOtherFee: s.otherFee || 0,
+              });
+            }
+          });
+
+          if (extraProds.length > 0) {
+            mergedProds = [...mergedProds, ...extraProds];
+          }
         } else {
           // Seed Supabase if empty
           await supabase.from('coupang_settlements').upsert(INITIAL_SETTLEMENTS);
         }
 
-        if (cloudProds && cloudProds.length > 0) {
-          setProducts(cloudProds);
-          localStorage.setItem('coupang_products', JSON.stringify(cloudProds));
-        } else {
+        setProducts(mergedProds);
+        localStorage.setItem('coupang_products', JSON.stringify(mergedProds));
+        if (!cloudProds || cloudProds.length === 0) {
           await supabase.from('coupang_products').upsert(INITIAL_PRODUCTS);
         }
 

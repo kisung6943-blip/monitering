@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ProductMaster, OrderSettlement } from '../types';
 import { formatKRW, formatNumber } from '../utils/settlementUtils';
 import { X, Calendar, Plus, Save, CheckCircle2, DollarSign, PackageCheck, AlertCircle } from 'lucide-react';
@@ -73,6 +73,40 @@ export const WeeklyPurchaseModal: React.FC<WeeklyPurchaseModalProps> = ({
       memo: '주간 매입 일괄 입력',
     }))
   );
+
+  // modal open 시 혹은 products prop 변경 시 rows 동기화
+  useEffect(() => {
+    if (isOpen) {
+      setRows((prevRows) => {
+        const prevMap = new Map(prevRows.map((r) => [r.productId, r]));
+        return products.map((p) => {
+          const existing = prevMap.get(p.id);
+          if (existing) {
+            return {
+              ...existing,
+              productName: p.name,
+              category: p.category,
+              supplyPrice: existing.orderQty > 0 || existing.deliveredQty > 0 ? existing.supplyPrice : p.supplyPrice,
+              unitCost: existing.orderQty > 0 || existing.deliveredQty > 0 ? existing.unitCost : p.unitCost,
+            };
+          }
+          return {
+            productId: p.id,
+            productName: p.name,
+            category: p.category,
+            orderQty: 0,
+            deliveredQty: 0,
+            supplyPrice: p.supplyPrice,
+            unitCost: p.unitCost,
+            adCost: 0,
+            otherFee: p.defaultOtherFee || 0,
+            frequencyType: '주간정기',
+            memo: '주간 매입 일괄 입력',
+          };
+        });
+      });
+    }
+  }, [isOpen, products]);
 
   // startDate 변경 시 deliveryDate 동기화 및 row 초기화 확인
   const handleStartDateChange = (newMonStr: string) => {
@@ -205,7 +239,7 @@ export const WeeklyPurchaseModal: React.FC<WeeklyPurchaseModalProps> = ({
 
           <div className="flex items-center space-x-3 text-xs">
             <span className="text-slate-600 dark:text-slate-400">
-              입력 대상: <strong className="text-indigo-600 dark:text-indigo-400 font-bold">{validRows.length}개 품목</strong> (총 {formatNumber(totalWeeklyQty)}개)
+              전체 <strong className="text-slate-800 dark:text-slate-200 font-bold">{rows.length}개 상품</strong> 중 <strong className="text-indigo-600 dark:text-indigo-400 font-bold">{validRows.length}개 선택 입력</strong> (총 {formatNumber(totalWeeklyQty)}개)
             </span>
             <span className="text-slate-600 dark:text-slate-400">
               주간 총 매입액: <strong className="text-emerald-600 dark:text-emerald-400 font-extrabold">{formatKRW(totalWeeklyGross)}</strong>
