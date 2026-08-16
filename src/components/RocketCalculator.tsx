@@ -27,12 +27,44 @@ import { AIAdvisorModal } from './AIAdvisorModal';
 import { supabase } from '../supabase';
 import * as XLSX from 'xlsx';
 
+const getDeletedProductIds = (): Set<string> => {
+  try {
+    const saved = localStorage.getItem('coupang_deleted_product_ids');
+    if (saved) return new Set(JSON.parse(saved));
+  } catch (e) {}
+  return new Set();
+};
+
+const getDeletedProductNames = (): Set<string> => {
+  try {
+    const saved = localStorage.getItem('coupang_deleted_product_names');
+    if (saved) return new Set(JSON.parse(saved));
+  } catch (e) {}
+  return new Set();
+};
+
+const saveDeletedProduct = (id: string, name?: string) => {
+  const ids = getDeletedProductIds();
+  ids.add(id);
+  localStorage.setItem('coupang_deleted_product_ids', JSON.stringify(Array.from(ids)));
+
+  if (name) {
+    const names = getDeletedProductNames();
+    names.add(name.trim());
+    localStorage.setItem('coupang_deleted_product_names', JSON.stringify(Array.from(names)));
+  }
+};
+
 const mergeAllProductSources = (...sources: any[][]): ProductMaster[] => {
   const map = new Map<string, ProductMaster>();
+  const deletedIds = getDeletedProductIds();
+  const deletedNames = getDeletedProductNames();
 
   const initialByName = new Map<string, ProductMaster>();
   INITIAL_PRODUCTS.forEach((p) => {
-    if (p.name) initialByName.set(p.name.trim(), p);
+    if (p.name && !deletedIds.has(p.id) && !deletedNames.has(p.name.trim())) {
+      initialByName.set(p.name.trim(), p);
+    }
   });
 
   sources.forEach((list) => {
@@ -41,6 +73,12 @@ const mergeAllProductSources = (...sources: any[][]): ProductMaster[] => {
         if (p && p.name) {
           const trimmedName = p.name.trim();
           const id = p.id || `prod-${trimmedName}`;
+
+          // 삭제 처리된 품목은 영구 제외
+          if (deletedIds.has(id) || deletedNames.has(trimmedName)) {
+            return;
+          }
+
           const existingById = map.get(id);
           const existingByName = Array.from(map.values()).find((item) => item.name === trimmedName);
           const existing = existingById || existingByName;
@@ -423,8 +461,32 @@ export default function RocketCalculator() {
     );
   };
 
-  const handleDeleteProduct = (id: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
+  const handleDeleteProduct = async (id: string) => {
+    const target = products.find((p) => p.id === id);
+    const targetName = target ? target.name.trim() : undefined;
+
+    // 1. LocalStorage 차단 목록 추가
+    saveDeletedProduct(id, targetName);
+
+    // 2. 로컬 상태 및 LocalStorage 삭제 반영
+    setProducts((prev) => {
+      const updated = prev.filter((p) => p.id !== id && (targetName ? p.name.trim() !== targetName : true));
+      localStorage.setItem('coupang_products', JSON.stringify(updated));
+      localStorage.setItem('price_monitor_products', JSON.stringify(updated));
+      return updated;
+    });
+
+    // 3. Supabase 클라우드 DB에서 영구 삭제
+    try {
+      await supabase.from('coupang_products').delete().eq('id', id);
+      await supabase.from('products').delete().eq('id', id);
+      if (targetName) {
+        await supabase.from('coupang_products').delete().eq('name', targetName);
+        await supabase.from('products').delete().eq('name', targetName);
+      }
+    } catch (e) {
+      console.error('Failed to delete product from Supabase:', e);
+    }
   };
 
   // Reset to mock initial data
