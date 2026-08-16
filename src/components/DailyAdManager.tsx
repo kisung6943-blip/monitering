@@ -310,7 +310,7 @@ export const DailyAdManager: React.FC<DailyAdManagerProps> = ({
                             <input
                               type="number"
                               min="0"
-                              step="1000"
+                              step="any"
                               value={costVal === 0 ? '' : costVal}
                               placeholder="0"
                               onChange={(e) =>

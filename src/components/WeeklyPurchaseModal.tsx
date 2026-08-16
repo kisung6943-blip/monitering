@@ -460,7 +460,7 @@ export const WeeklyPurchaseModal: React.FC<WeeklyPurchaseModalProps> = ({
                           <input
                             type="number"
                             min="0"
-                            step="100"
+                            step="any"
                             value={row.supplyPrice}
                             onChange={(e) =>
                               handleRowChange(row.productId, 'supplyPrice', parseInt(e.target.value, 10) || 0)
@@ -475,7 +475,7 @@ export const WeeklyPurchaseModal: React.FC<WeeklyPurchaseModalProps> = ({
                           <input
                             type="number"
                             min="0"
-                            step="100"
+                            step="any"
                             value={row.unitCost}
                             onChange={(e) =>
                               handleRowChange(row.productId, 'unitCost', parseInt(e.target.value, 10) || 0)
@@ -487,7 +487,7 @@ export const WeeklyPurchaseModal: React.FC<WeeklyPurchaseModalProps> = ({
                           <input
                             type="number"
                             min="0"
-                            step="1000"
+                            step="any"
                             value={row.adCost === 0 ? '' : row.adCost}
                             placeholder="0"
                             onChange={(e) =>
@@ -500,7 +500,7 @@ export const WeeklyPurchaseModal: React.FC<WeeklyPurchaseModalProps> = ({
                           <input
                             type="number"
                             min="0"
-                            step="100"
+                            step="any"
                             value={row.otherFee === 0 ? '' : row.otherFee}
                             placeholder="0"
                             onChange={(e) =>
