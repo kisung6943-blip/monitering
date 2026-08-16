@@ -46,30 +46,25 @@ const mergeAllProductSources = (...sources: any[][]): ProductMaster[] => {
           const existing = existingById || existingByName;
 
           const initialMatch = initialByName.get(trimmedName);
-          const isFakeDefault = p.supplyPrice === 10000 && p.unitCost === 4000;
 
-          let supplyPrice = 0;
-          if (initialMatch) {
-            supplyPrice = initialMatch.supplyPrice;
-          } else if (!isFakeDefault && typeof p.supplyPrice === 'number' && p.supplyPrice > 0) {
-            supplyPrice = p.supplyPrice;
-          } else if (existing && existing.supplyPrice > 0) {
-            supplyPrice = existing.supplyPrice;
-          }
+          const supplyPrice =
+            existing && existing.supplyPrice > 0
+              ? existing.supplyPrice
+              : typeof p.supplyPrice === 'number' && p.supplyPrice > 0
+              ? p.supplyPrice
+              : initialMatch?.supplyPrice || 10000;
 
-          let unitCost = 0;
-          if (initialMatch) {
-            unitCost = initialMatch.unitCost;
-          } else if (!isFakeDefault && typeof p.unitCost === 'number' && p.unitCost > 0) {
-            unitCost = p.unitCost;
-          } else if (existing && existing.unitCost > 0) {
-            unitCost = existing.unitCost;
-          }
+          const unitCost =
+            existing && existing.unitCost > 0
+              ? existing.unitCost
+              : typeof p.unitCost === 'number' && p.unitCost > 0
+              ? p.unitCost
+              : initialMatch?.unitCost || 4000;
 
           const commissionRate =
             typeof p.commissionRate === 'number'
               ? p.commissionRate
-              : existing?.commissionRate ?? initialMatch?.commissionRate ?? 0;
+              : existing?.commissionRate ?? initialMatch?.commissionRate ?? 10.8;
 
           const defaultOtherFee =
             typeof p.defaultOtherFee === 'number'
