@@ -438,6 +438,7 @@ export const WeeklyPurchaseModal: React.FC<WeeklyPurchaseModalProps> = ({
                             min="0"
                             value={row.orderQty === 0 ? '' : row.orderQty}
                             placeholder="0"
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) =>
                               handleRowChange(row.productId, 'orderQty', parseInt(e.target.value, 10) || 0)
                             }
@@ -450,6 +451,7 @@ export const WeeklyPurchaseModal: React.FC<WeeklyPurchaseModalProps> = ({
                             min="0"
                             value={row.deliveredQty === 0 ? '' : row.deliveredQty}
                             placeholder="0"
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) =>
                               handleRowChange(row.productId, 'deliveredQty', parseInt(e.target.value, 10) || 0)
                             }
@@ -461,7 +463,9 @@ export const WeeklyPurchaseModal: React.FC<WeeklyPurchaseModalProps> = ({
                             type="number"
                             min="0"
                             step="any"
-                            value={row.supplyPrice}
+                            value={row.supplyPrice === 0 ? '' : row.supplyPrice}
+                            placeholder="0"
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) =>
                               handleRowChange(row.productId, 'supplyPrice', parseInt(e.target.value, 10) || 0)
                             }
@@ -476,7 +480,9 @@ export const WeeklyPurchaseModal: React.FC<WeeklyPurchaseModalProps> = ({
                             type="number"
                             min="0"
                             step="any"
-                            value={row.unitCost}
+                            value={row.unitCost === 0 ? '' : row.unitCost}
+                            placeholder="0"
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) =>
                               handleRowChange(row.productId, 'unitCost', parseInt(e.target.value, 10) || 0)
                             }
@@ -490,6 +496,7 @@ export const WeeklyPurchaseModal: React.FC<WeeklyPurchaseModalProps> = ({
                             step="any"
                             value={row.adCost === 0 ? '' : row.adCost}
                             placeholder="0"
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) =>
                               handleRowChange(row.productId, 'adCost', parseInt(e.target.value, 10) || 0)
                             }
@@ -503,6 +510,7 @@ export const WeeklyPurchaseModal: React.FC<WeeklyPurchaseModalProps> = ({
                             step="any"
                             value={row.otherFee === 0 ? '' : row.otherFee}
                             placeholder="0"
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) =>
                               handleRowChange(row.productId, 'otherFee', parseInt(e.target.value, 10) || 0)
                             }

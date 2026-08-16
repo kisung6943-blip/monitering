@@ -140,7 +140,9 @@ export const ProductMasterModal: React.FC<ProductMasterModalProps> = ({
                 </label>
                 <input
                   type="number"
-                  value={formData.supplyPrice}
+                  value={formData.supplyPrice === 0 ? '' : formData.supplyPrice}
+                  placeholder="0"
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, supplyPrice: parseInt(e.target.value) || 0 }))
                   }
@@ -154,7 +156,9 @@ export const ProductMasterModal: React.FC<ProductMasterModalProps> = ({
                 </label>
                 <input
                   type="number"
-                  value={formData.unitCost}
+                  value={formData.unitCost === 0 ? '' : formData.unitCost}
+                  placeholder="0"
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, unitCost: parseInt(e.target.value) || 0 }))
                   }

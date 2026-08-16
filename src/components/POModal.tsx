@@ -258,7 +258,9 @@ export const POModal: React.FC<POModalProps> = ({
               <input
                 type="number"
                 min="0"
-                value={formData.orderQty}
+                value={formData.orderQty === 0 ? '' : formData.orderQty}
+                placeholder="0"
+                onFocus={(e) => e.target.select()}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, orderQty: parseInt(e.target.value) || 0 }))
                 }
@@ -273,7 +275,9 @@ export const POModal: React.FC<POModalProps> = ({
               <input
                 type="number"
                 min="0"
-                value={formData.deliveredQty}
+                value={formData.deliveredQty === 0 ? '' : formData.deliveredQty}
+                placeholder="0"
+                onFocus={(e) => e.target.select()}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, deliveredQty: parseInt(e.target.value) || 0 }))
                 }
@@ -288,7 +292,10 @@ export const POModal: React.FC<POModalProps> = ({
               <input
                 type="number"
                 min="0"
-                value={formData.supplyPrice}
+                step="any"
+                value={formData.supplyPrice === 0 ? '' : formData.supplyPrice}
+                placeholder="0"
+                onFocus={(e) => e.target.select()}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, supplyPrice: parseInt(e.target.value) || 0 }))
                 }
@@ -303,7 +310,10 @@ export const POModal: React.FC<POModalProps> = ({
               <input
                 type="number"
                 min="0"
-                value={formData.unitCost}
+                step="any"
+                value={formData.unitCost === 0 ? '' : formData.unitCost}
+                placeholder="0"
+                onFocus={(e) => e.target.select()}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, unitCost: parseInt(e.target.value) || 0 }))
                 }
@@ -321,7 +331,10 @@ export const POModal: React.FC<POModalProps> = ({
               <input
                 type="number"
                 min="0"
-                value={formData.adCost}
+                step="any"
+                value={formData.adCost === 0 ? '' : formData.adCost}
+                placeholder="0"
+                onFocus={(e) => e.target.select()}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, adCost: parseInt(e.target.value) || 0 }))
                 }
@@ -336,7 +349,10 @@ export const POModal: React.FC<POModalProps> = ({
               <input
                 type="number"
                 min="0"
-                value={formData.otherFee}
+                step="any"
+                value={formData.otherFee === 0 ? '' : formData.otherFee}
+                placeholder="0"
+                onFocus={(e) => e.target.select()}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, otherFee: parseInt(e.target.value) || 0 }))
                 }
