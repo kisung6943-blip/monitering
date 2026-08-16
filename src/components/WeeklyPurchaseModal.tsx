@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { ProductMaster, OrderSettlement } from '../types';
 import { formatKRW, formatNumber } from '../utils/settlementUtils';
-import { X, Calendar, Plus, Save, CheckCircle2, DollarSign, PackageCheck, AlertCircle, Search } from 'lucide-react';
+import { X, Calendar, Plus, Save, CheckCircle2, DollarSign, PackageCheck, AlertCircle, Search, Trash2 } from 'lucide-react';
 
 interface WeeklyPurchaseModalProps {
   isOpen: boolean;
   onClose: () => void;
   products: ProductMaster[];
   onBatchSaveWeeklyOrders: (newOrders: OrderSettlement[]) => void;
+  onDeleteProduct?: (id: string) => void;
 }
 
 interface WeeklyItemRow {
@@ -29,6 +30,7 @@ export const WeeklyPurchaseModal: React.FC<WeeklyPurchaseModalProps> = ({
   onClose,
   products,
   onBatchSaveWeeklyOrders,
+  onDeleteProduct,
 }) => {
   // 이번 주 월요일 계산
   const getMondayOfCurrentWeek = () => {
@@ -78,6 +80,15 @@ export const WeeklyPurchaseModal: React.FC<WeeklyPurchaseModalProps> = ({
       memo: '주간 매입 일괄 입력',
     }))
   );
+
+  const handleRemoveRow = (productId: string, productName: string) => {
+    if (confirm(`'${productName}' 품목을 상품 마스터 및 목록에서 삭제하시겠습니까?`)) {
+      setRows((prev) => prev.filter((r) => r.productId !== productId));
+      if (onDeleteProduct) {
+        onDeleteProduct(productId);
+      }
+    }
+  };
 
   // modal open 시 혹은 products prop 변경 시 rows 동기화
   useEffect(() => {
@@ -371,6 +382,7 @@ export const WeeklyPurchaseModal: React.FC<WeeklyPurchaseModalProps> = ({
                   <th className="p-3 font-bold text-right min-w-[95px]">주간 광고비(원)</th>
                   <th className="p-3 font-bold text-right min-w-[90px]">물류비(원)</th>
                   <th className="p-3 font-bold text-center min-w-[90px]">구분</th>
+                  <th className="p-3 font-bold text-center min-w-[50px]">삭제</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -394,7 +406,7 @@ export const WeeklyPurchaseModal: React.FC<WeeklyPurchaseModalProps> = ({
                   if (filteredRows.length === 0) {
                     return (
                       <tr>
-                        <td colSpan={10} className="text-center py-10 text-slate-400 font-medium">
+                        <td colSpan={11} className="text-center py-10 text-slate-400 font-medium">
                           검색 조건에 일치하는 품목이 없습니다.
                         </td>
                       </tr>
@@ -512,6 +524,16 @@ export const WeeklyPurchaseModal: React.FC<WeeklyPurchaseModalProps> = ({
                             <option value="주간정기">정기</option>
                             <option value="수시비정기">비정기</option>
                           </select>
+                        </td>
+                        <td className="p-2 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveRow(row.productId, row.productName)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 transition hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded"
+                            title="품목 삭제"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </td>
                       </tr>
                     );

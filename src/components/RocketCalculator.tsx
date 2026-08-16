@@ -555,6 +555,7 @@ export default function RocketCalculator() {
         onClose={() => setIsWeeklyPurchaseOpen(false)}
         products={products}
         onBatchSaveWeeklyOrders={handleBatchSaveWeeklyOrders}
+        onDeleteProduct={handleDeleteProduct}
       />
 
       <POModal
