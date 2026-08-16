@@ -27,18 +27,51 @@ import { AIAdvisorModal } from './AIAdvisorModal';
 import { supabase } from '../supabase';
 import * as XLSX from 'xlsx';
 
+const mergeAllProductSources = (...sources: any[][]): ProductMaster[] => {
+  const map = new Map<string, ProductMaster>();
+  sources.forEach((list) => {
+    if (Array.isArray(list)) {
+      list.forEach((p) => {
+        if (p && p.name) {
+          const id = p.id || `prod-${p.name}`;
+          const existingById = map.get(id);
+          const existingByName = Array.from(map.values()).find((item) => item.name === p.name);
+          const existing = existingById || existingByName;
+
+          const item: ProductMaster = {
+            id: existing ? existing.id : id,
+            sku: p.sku || existing?.sku || `SKU-${id}`,
+            name: p.name,
+            category: p.category || existing?.category || '주방용품',
+            supplyPrice: p.supplyPrice ?? existing?.supplyPrice ?? 10000,
+            unitCost: p.unitCost ?? existing?.unitCost ?? 4000,
+            commissionRate: p.commissionRate ?? existing?.commissionRate ?? 10.8,
+            defaultOtherFee: p.defaultOtherFee ?? existing?.defaultOtherFee ?? 0,
+          };
+          map.set(item.id, item);
+        }
+      });
+    }
+  });
+  return Array.from(map.values());
+};
+
 export default function RocketCalculator() {
   // LocalStorage & Supabase state initialization
   const [products, setProducts] = useState<ProductMaster[]>(() => {
-    const saved = localStorage.getItem('coupang_products');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.some((p: any) => p.name?.includes('요거트'))) return INITIAL_PRODUCTS;
-        return parsed;
-      } catch (e) {}
-    }
-    return INITIAL_PRODUCTS;
+    let p1: any[] = [];
+    let p2: any[] = [];
+    try {
+      const saved1 = localStorage.getItem('coupang_products');
+      if (saved1) p1 = JSON.parse(saved1);
+    } catch (e) {}
+    try {
+      const saved2 = localStorage.getItem('price_monitor_products');
+      if (saved2) p2 = JSON.parse(saved2);
+    } catch (e) {}
+
+    const merged = mergeAllProductSources(p1, p2, INITIAL_PRODUCTS);
+    return merged;
   });
 
   const [settlements, setSettlements] = useState<OrderSettlement[]>(() => {
@@ -93,28 +126,33 @@ export default function RocketCalculator() {
   useEffect(() => {
     const fetchCloudData = async () => {
       try {
-        const { data: cloudProds } = await supabase.from('coupang_products').select('*');
+        const { data: cloudProds } = await supabase.from('products').select('*');
+        const { data: coupangProds } = await supabase.from('coupang_products').select('*');
         const { data: cloudSettles } = await supabase.from('coupang_settlements').select('*');
         const { data: cloudDailyAds } = await supabase.from('coupang_daily_ads').select('*');
 
-        let mergedProds: ProductMaster[] = cloudProds && cloudProds.length > 0 ? cloudProds : INITIAL_PRODUCTS;
+        let p1: any[] = [];
+        let p2: any[] = [];
+        try {
+          const saved1 = localStorage.getItem('coupang_products');
+          if (saved1) p1 = JSON.parse(saved1);
+        } catch (e) {}
+        try {
+          const saved2 = localStorage.getItem('price_monitor_products');
+          if (saved2) p2 = JSON.parse(saved2);
+        } catch (e) {}
+
+        let merged = mergeAllProductSources(cloudProds || [], coupangProds || [], p1, p2, INITIAL_PRODUCTS);
 
         if (cloudSettles && cloudSettles.length > 0) {
           setSettlements(cloudSettles);
           localStorage.setItem('coupang_settlements', JSON.stringify(cloudSettles));
 
-          // Ensure any products present in settlements are also in product master list
-          const prodIdSet = new Set(mergedProds.map((p) => p.id));
-          const prodNameSet = new Set(mergedProds.map((p) => p.name));
-          const extraProds: ProductMaster[] = [];
-
+          const extraProds: any[] = [];
           cloudSettles.forEach((s) => {
-            if (s.productId && s.productName && !prodIdSet.has(s.productId) && !prodNameSet.has(s.productName)) {
-              prodIdSet.add(s.productId);
-              prodNameSet.add(s.productName);
+            if (s.productId && s.productName) {
               extraProds.push({
                 id: s.productId,
-                sku: `SKU-${s.productId}`,
                 name: s.productName,
                 category: s.category || '주방용품',
                 supplyPrice: s.supplyPrice || 0,
@@ -124,27 +162,14 @@ export default function RocketCalculator() {
               });
             }
           });
-
-          if (extraProds.length > 0) {
-            mergedProds = [...mergedProds, ...extraProds];
-          }
+          merged = mergeAllProductSources(merged, extraProds);
         } else {
           // Seed Supabase if empty
           await supabase.from('coupang_settlements').upsert(INITIAL_SETTLEMENTS);
         }
 
-        setProducts(mergedProds);
-        localStorage.setItem('coupang_products', JSON.stringify(mergedProds));
-        if (!cloudProds || cloudProds.length === 0) {
-          await supabase.from('coupang_products').upsert(INITIAL_PRODUCTS);
-        }
-
-        if (cloudDailyAds && cloudDailyAds.length > 0) {
-          setDailyAdCosts(cloudDailyAds);
-          localStorage.setItem('coupang_daily_ads', JSON.stringify(cloudDailyAds));
-        } else {
-          await supabase.from('coupang_daily_ads').upsert(INITIAL_DAILY_AD_COSTS);
-        }
+        setProducts(merged);
+        localStorage.setItem('coupang_products', JSON.stringify(merged));
       } catch (err) {
         console.warn('Supabase cloud sync warning:', err);
       }
@@ -156,7 +181,12 @@ export default function RocketCalculator() {
   useEffect(() => {
     localStorage.setItem('coupang_products', JSON.stringify(products));
     try {
-      supabase.from('coupang_products').upsert(products);
+      const formatted = products.map((p) => ({
+        id: p.id,
+        name: p.name,
+      }));
+      supabase.from('products').upsert(formatted, { onConflict: 'id' }).then();
+      supabase.from('coupang_products').upsert(products).then();
     } catch (e) {}
   }, [products]);
 
