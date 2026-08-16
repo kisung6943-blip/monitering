@@ -90,44 +90,46 @@ export const WeeklyPurchaseModal: React.FC<WeeklyPurchaseModalProps> = ({
     }
   };
 
-  // modal open 시 혹은 products prop 변경 시 rows 동기화
+  // modal open 시 fresh하게 rows 초기화 (이전 입력 잔여 수량이 섞이지 않도록 방지)
   useEffect(() => {
     if (isOpen) {
-      setRows((prevRows) => {
-        const prevMap = new Map(prevRows.map((r) => [r.productId, r]));
-        return products.map((p) => {
-          const existing = prevMap.get(p.id);
-          if (existing) {
-            return {
-              ...existing,
-              productName: p.name,
-              category: p.category,
-              supplyPrice: existing.orderQty > 0 || existing.deliveredQty > 0 ? existing.supplyPrice : p.supplyPrice,
-              unitCost: existing.orderQty > 0 || existing.deliveredQty > 0 ? existing.unitCost : p.unitCost,
-            };
-          }
-          return {
-            productId: p.id,
-            productName: p.name,
-            category: p.category,
-            orderQty: 0,
-            deliveredQty: 0,
-            supplyPrice: p.supplyPrice,
-            unitCost: p.unitCost,
-            adCost: 0,
-            otherFee: p.defaultOtherFee || 0,
-            frequencyType: '주간정기',
-            memo: '주간 매입 일괄 입력',
-          };
-        });
-      });
+      setRows(
+        products.map((p) => ({
+          productId: p.id,
+          productName: p.name,
+          category: p.category,
+          orderQty: 0,
+          deliveredQty: 0,
+          supplyPrice: p.supplyPrice,
+          unitCost: p.unitCost,
+          adCost: 0,
+          otherFee: p.defaultOtherFee || 0,
+          frequencyType: '주간정기',
+          memo: '주간 매입 일괄 입력',
+        }))
+      );
     }
-  }, [isOpen, products]);
+  }, [isOpen]);
 
-  // startDate 변경 시 deliveryDate 동기화 및 row 초기화 확인
+  // startDate 변경 시 deliveryDate 동기화 및 row 초기화
   const handleStartDateChange = (newMonStr: string) => {
     setStartDate(newMonStr);
     setDeliveryDate(getDefaultDeliveryDate(newMonStr));
+    setRows(
+      products.map((p) => ({
+        productId: p.id,
+        productName: p.name,
+        category: p.category,
+        orderQty: 0,
+        deliveredQty: 0,
+        supplyPrice: p.supplyPrice,
+        unitCost: p.unitCost,
+        adCost: 0,
+        otherFee: p.defaultOtherFee || 0,
+        frequencyType: '주간정기',
+        memo: '주간 매입 일괄 입력',
+      }))
+    );
   };
 
   // 행 값 변경 함수 (productId 기반)
