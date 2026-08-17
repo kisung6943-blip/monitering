@@ -3,7 +3,7 @@ import {
   Search, Plus, Trash2, Edit2, Sparkles, LineChart as ChartIcon, 
   Calendar, ArrowUpDown, TrendingDown, TrendingUp, CheckCircle, 
   ExternalLink, FileSpreadsheet, Download, Upload, Info, AlertTriangle, 
-  RefreshCw, Layers, Check, X, HelpCircle
+  RefreshCw, Layers, Check, X, HelpCircle, ChevronUp, ChevronDown
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
@@ -317,19 +317,42 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
         console.error("LocalStorage parse error:", err);
       }
 
-      // Exclude blacklisted/deleted products
-      dbProds = dbProds.filter(p => !isProductDeleted(p.id, p.name));
-      localProds = localProds.filter(p => !isProductDeleted(p.id, p.name));
-      const filteredInitial = INITIAL_PRODUCTS.filter(p => !isProductDeleted(p.id, p.name));
+      // Extract sort order config from dbProds first, then localProds
+      let sortOrder: string[] = [];
+      const dbSortConfig = dbProds.find(p => p.id === 'sort-order-config');
+      if (dbSortConfig && dbSortConfig.keywords) {
+        sortOrder = dbSortConfig.keywords;
+      } else {
+        const localSortConfig = localProds.find(p => p.id === 'sort-order-config');
+        if (localSortConfig && localSortConfig.keywords) {
+          sortOrder = localSortConfig.keywords;
+        }
+      }
+
+      // Exclude blacklisted/deleted products and sort-order-config dummy product
+      dbProds = dbProds.filter(p => p.id !== 'sort-order-config' && !isProductDeleted(p.id, p.name));
+      localProds = localProds.filter(p => p.id !== 'sort-order-config' && !isProductDeleted(p.id, p.name));
+      const filteredInitial = INITIAL_PRODUCTS.filter(p => p.id !== 'sort-order-config' && !isProductDeleted(p.id, p.name));
 
       let finalProducts: Product[] = [];
       if (dbProds.length > 0) {
         // Supabase cloud DB is the strict source of truth
-        finalProducts = dbProds.filter(p => !isProductDeleted(p.id, p.name));
+        finalProducts = dbProds;
       } else if (localProds.length > 0) {
-        finalProducts = localProds.filter(p => !isProductDeleted(p.id, p.name));
+        finalProducts = localProds;
       } else {
         finalProducts = filteredInitial;
+      }
+
+      // Apply sorting if sortOrder is available
+      if (sortOrder.length > 0) {
+        const orderMap = new Map<string, number>();
+        sortOrder.forEach((id, idx) => orderMap.set(id, idx));
+        finalProducts.sort((a, b) => {
+          const idxA = orderMap.has(a.id) ? orderMap.get(a.id)! : 999999;
+          const idxB = orderMap.has(b.id) ? orderMap.get(b.id)! : 999999;
+          return idxA - idxB;
+        });
       }
 
       const validProductIds = new Set(finalProducts.map(p => p.id));
@@ -337,7 +360,13 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
 
       setProducts(finalProducts);
       setPriceLogs(finalLogs);
-      localStorage.setItem("price_monitor_products", JSON.stringify(finalProducts));
+      
+      const sortConfigProduct: Product = {
+        id: 'sort-order-config',
+        name: 'SORT_ORDER_CONFIG',
+        keywords: finalProducts.map(p => p.id)
+      };
+      localStorage.setItem("price_monitor_products", JSON.stringify([...finalProducts, sortConfigProduct]));
       localStorage.setItem("price_monitor_logs", JSON.stringify(finalLogs));
 
       setIsLoading(false);
@@ -352,18 +381,27 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
     updatedLogs: PriceLog[],
     syncProductsToCloud: boolean = false
   ) => {
-    const cleanProducts = updatedProducts.filter(p => !isProductDeleted(p.id, p.name));
+    const cleanProducts = updatedProducts.filter(p => p.id !== 'sort-order-config' && !isProductDeleted(p.id, p.name));
+    
+    // Construct the sort config dummy product
+    const sortConfigProduct: Product = {
+      id: 'sort-order-config',
+      name: 'SORT_ORDER_CONFIG',
+      keywords: cleanProducts.map(p => p.id) // store the order of product IDs
+    };
+
+    const productsToSave = [...cleanProducts, sortConfigProduct];
     const validProdIds = new Set(cleanProducts.map(p => p.id));
     const cleanLogs = updatedLogs.filter(l => validProdIds.has(l.productId));
 
     setProducts(cleanProducts);
     setPriceLogs(cleanLogs);
-    localStorage.setItem("price_monitor_products", JSON.stringify(cleanProducts));
+    localStorage.setItem("price_monitor_products", JSON.stringify(productsToSave));
     localStorage.setItem("price_monitor_logs", JSON.stringify(cleanLogs));
     
     try {
-      if (syncProductsToCloud && cleanProducts.length > 0) {
-        await supabase.from("products").upsert(cleanProducts);
+      if (syncProductsToCloud && productsToSave.length > 0) {
+        await supabase.from("products").upsert(productsToSave);
       }
       if (cleanLogs.length > 0) {
         await supabase.from("price_logs").upsert(cleanLogs);
@@ -788,7 +826,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
     };
 
     const updatedProducts = [...products, newProduct];
-    saveToLocalStorage(updatedProducts, priceLogs);
+    saveToLocalStorage(updatedProducts, priceLogs, true);
     
     // Auto select the new product
     setSelectedProductId(newId);
@@ -816,10 +854,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
       );
       const updatedLogs = priceLogs.filter((l) => l.productId !== productId);
       
-      setProducts(updatedProducts);
-      setPriceLogs(updatedLogs);
-      localStorage.setItem("price_monitor_products", JSON.stringify(updatedProducts));
-      localStorage.setItem("price_monitor_logs", JSON.stringify(updatedLogs));
+      saveToLocalStorage(updatedProducts, updatedLogs, true);
 
       try {
         const cpStr = localStorage.getItem("coupang_products");
@@ -849,6 +884,30 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
       }
       showToast("품목이 성공적으로 삭제되었습니다.");
     }
+  };
+
+  // Move product up or down in the sort order
+  const handleMoveProduct = (itemId: string, direction: "up" | "down") => {
+    const filteredIdx = filteredLogs.findIndex(item => item.id === itemId);
+    if (filteredIdx === -1) return;
+    
+    const targetFilteredIdx = direction === "up" ? filteredIdx - 1 : filteredIdx + 1;
+    if (targetFilteredIdx < 0 || targetFilteredIdx >= filteredLogs.length) return;
+    
+    const currentItem = filteredLogs[filteredIdx];
+    const targetItem = filteredLogs[targetFilteredIdx];
+    
+    const masterIdxCurrent = products.findIndex(p => p.id === currentItem.id);
+    const masterIdxTarget = products.findIndex(p => p.id === targetItem.id);
+    
+    if (masterIdxCurrent === -1 || masterIdxTarget === -1) return;
+    
+    const updatedProducts = [...products];
+    const temp = updatedProducts[masterIdxCurrent];
+    updatedProducts[masterIdxCurrent] = updatedProducts[masterIdxTarget];
+    updatedProducts[masterIdxTarget] = temp;
+    
+    saveToLocalStorage(updatedProducts, priceLogs, true);
   };
 
   // Export database as JSON
@@ -1165,8 +1224,34 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                             id={`row-${item.id}`}
                           >
                             {/* Number */}
-                            <td className="py-3 px-3 text-center text-xs text-slate-400 group-hover:text-slate-600">
-                              {idx + 1}
+                            <td className="py-3 px-1 text-center text-xs text-slate-400 group-hover:text-slate-600 w-16">
+                              <div className="flex items-center justify-center gap-1">
+                                <span className="w-4 text-center">{idx + 1}</span>
+                                <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMoveProduct(item.id, "up");
+                                    }}
+                                    disabled={idx === 0}
+                                    className="p-0.5 hover:bg-slate-200 rounded text-slate-500 disabled:opacity-20 disabled:hover:bg-transparent"
+                                    title="위로 이동"
+                                  >
+                                    <ChevronUp size={12} />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMoveProduct(item.id, "down");
+                                    }}
+                                    disabled={idx === filteredLogs.length - 1}
+                                    className="p-0.5 hover:bg-slate-200 rounded text-slate-500 disabled:opacity-20 disabled:hover:bg-transparent"
+                                    title="아래로 이동"
+                                  >
+                                    <ChevronDown size={12} />
+                                  </button>
+                                </div>
+                              </div>
                             </td>
                             
                             {/* Name */}
