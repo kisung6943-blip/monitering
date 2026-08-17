@@ -19,6 +19,34 @@ import CoupangCouponManager from "./components/CoupangCouponManager";
 import { CoupangEndLohasCalc } from "./components/CoupangEndLohas/CoupangEndLohasCalc";
 import { callGeminiGenerateContent } from "./utils/geminiApi";
 import DailyCalculator from "./components/dailyCalculator/DailyCalculator";
+import { 
+  getDeletedProductIds, 
+  getDeletedProductNames, 
+  saveDeletedProduct, 
+  unblacklistProduct, 
+  isProductDeleted 
+} from "./utils/productBlacklist";
+
+const getSavedMemos = (): Record<string, string> => {
+  try {
+    const saved = localStorage.getItem("price_monitor_memos");
+    if (saved) return JSON.parse(saved);
+  } catch (e) {}
+  return {};
+};
+
+const saveMemoToLocalStorage = (productId: string, date: string, memo: string) => {
+  try {
+    const memos = getSavedMemos();
+    const key = `${productId}_${date}`;
+    if (memo && memo.trim()) {
+      memos[key] = memo;
+    } else {
+      delete memos[key];
+    }
+    localStorage.setItem("price_monitor_memos", JSON.stringify(memos));
+  } catch (e) {}
+};
 
 export default function App() {
   // State for products and price logs
@@ -186,6 +214,8 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
   const mergeProducts = (dProds: Product[], lProds: Product[]): Product[] => {
     const map = new Map<string, Product>();
     const addOrMerge = (p: Product) => {
+      if (!p || !p.id) return;
+      if (isProductDeleted(p.id, p.name)) return;
       if (!map.has(p.id)) {
         map.set(p.id, { ...p });
         return;
@@ -206,16 +236,23 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
     };
     dProds.forEach(addOrMerge);
     lProds.forEach(addOrMerge);
-    return Array.from(map.values());
+    return Array.from(map.values()).filter(p => !isProductDeleted(p.id, p.name));
   };
 
   // Helper to merge price logs without losing data
   const mergeLogs = (dLogs: PriceLog[], lLogs: PriceLog[]): PriceLog[] => {
     const map = new Map<string, PriceLog>();
+    const savedMemos = getSavedMemos();
+
     const addOrMerge = (log: PriceLog) => {
       const key = `${log.productId}_${log.date}`;
+      const memoFromStorage = savedMemos[key] || "";
+
       if (!map.has(key)) {
-        map.set(key, { ...log });
+        map.set(key, { 
+          ...log,
+          memo: log.memo || memoFromStorage || ""
+        });
         return;
       }
       const existing = map.get(key)!;
@@ -225,6 +262,12 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
       const mergedCoupRanks = Array.from({ length: 6 }).map((_, i) =>
         log.coupangKeywordRanks?.[i] || existing.coupangKeywordRanks?.[i] || ""
       );
+      const mergedMemo = (log.memo && log.memo.trim() !== "")
+        ? log.memo
+        : (existing.memo && existing.memo.trim() !== "")
+        ? existing.memo
+        : memoFromStorage;
+
       map.set(key, {
         id: existing.id || log.id,
         date: log.date || existing.date,
@@ -239,7 +282,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
         difference: log.difference || existing.difference || 0,
         keywordRanks: mergedNavRanks,
         coupangKeywordRanks: mergedCoupRanks,
-        memo: log.memo || existing.memo || "",
+        memo: mergedMemo,
       });
     };
     dLogs.forEach(addOrMerge);
@@ -274,22 +317,28 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
         console.error("LocalStorage parse error:", err);
       }
 
-      let finalProducts = mergeProducts(dbProds, localProds);
-      let finalLogs = mergeLogs(dbLogs, localLogs);
+      // Exclude blacklisted/deleted products
+      dbProds = dbProds.filter(p => !isProductDeleted(p.id, p.name));
+      localProds = localProds.filter(p => !isProductDeleted(p.id, p.name));
+      const filteredInitial = INITIAL_PRODUCTS.filter(p => !isProductDeleted(p.id, p.name));
 
-      if (finalProducts.length === 0) {
-        finalProducts = INITIAL_PRODUCTS;
-        finalLogs = generateHistoricalLogs();
+      let finalProducts: Product[] = [];
+      if (dbProds.length > 0) {
+        // Supabase cloud DB is the strict source of truth
+        finalProducts = dbProds.filter(p => !isProductDeleted(p.id, p.name));
+      } else if (localProds.length > 0) {
+        finalProducts = localProds.filter(p => !isProductDeleted(p.id, p.name));
+      } else {
+        finalProducts = filteredInitial;
       }
+
+      const validProductIds = new Set(finalProducts.map(p => p.id));
+      let finalLogs = mergeLogs(dbLogs, localLogs).filter(l => validProductIds.has(l.productId));
 
       setProducts(finalProducts);
       setPriceLogs(finalLogs);
       localStorage.setItem("price_monitor_products", JSON.stringify(finalProducts));
       localStorage.setItem("price_monitor_logs", JSON.stringify(finalLogs));
-
-      // Sync merged result back to Supabase asynchronously
-      if (finalProducts.length > 0) supabase.from("products").upsert(finalProducts).then();
-      if (finalLogs.length > 0) supabase.from("price_logs").upsert(finalLogs).then();
 
       setIsLoading(false);
     };
@@ -298,15 +347,27 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
   }, []);
 
   // Sync state changes with localStorage and Supabase
-  const saveToLocalStorage = async (updatedProducts: Product[], updatedLogs: PriceLog[]) => {
-    setProducts(updatedProducts);
-    setPriceLogs(updatedLogs);
-    localStorage.setItem("price_monitor_products", JSON.stringify(updatedProducts));
-    localStorage.setItem("price_monitor_logs", JSON.stringify(updatedLogs));
+  const saveToLocalStorage = async (
+    updatedProducts: Product[],
+    updatedLogs: PriceLog[],
+    syncProductsToCloud: boolean = false
+  ) => {
+    const cleanProducts = updatedProducts.filter(p => !isProductDeleted(p.id, p.name));
+    const validProdIds = new Set(cleanProducts.map(p => p.id));
+    const cleanLogs = updatedLogs.filter(l => validProdIds.has(l.productId));
+
+    setProducts(cleanProducts);
+    setPriceLogs(cleanLogs);
+    localStorage.setItem("price_monitor_products", JSON.stringify(cleanProducts));
+    localStorage.setItem("price_monitor_logs", JSON.stringify(cleanLogs));
     
     try {
-      if (updatedProducts.length > 0) await supabase.from("products").upsert(updatedProducts);
-      if (updatedLogs.length > 0) await supabase.from("price_logs").upsert(updatedLogs);
+      if (syncProductsToCloud && cleanProducts.length > 0) {
+        await supabase.from("products").upsert(cleanProducts);
+      }
+      if (cleanLogs.length > 0) {
+        await supabase.from("price_logs").upsert(cleanLogs);
+      }
     } catch (e) {
       console.error("Supabase sync error:", e);
     }
@@ -462,6 +523,8 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
     );
 
     const updatedLogs = [...priceLogs];
+    const existingLog = existingLogIndex >= 0 ? priceLogs[existingLogIndex] : null;
+
     const newLog: PriceLog = {
       id: `log-${selectedProductId}-${selectedDate}`,
       date: selectedDate,
@@ -474,7 +537,9 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
       coupangShipping: coupShip,
       coupangTotal,
       difference,
-      keywordRanks: existingLogIndex >= 0 ? priceLogs[existingLogIndex].keywordRanks : [],
+      keywordRanks: existingLog?.keywordRanks || Array(6).fill(""),
+      coupangKeywordRanks: existingLog?.coupangKeywordRanks || Array(6).fill(""),
+      memo: existingLog?.memo || getSavedMemos()[`${selectedProductId}_${selectedDate}`] || "",
     };
 
     if (existingLogIndex >= 0) {
@@ -516,16 +581,16 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
       (log) => log.productId === productId && log.date === selectedDate
     );
     const updatedLogs = [...priceLogs];
+    const existingLog = existingLogIndex >= 0 ? updatedLogs[existingLogIndex] : null;
     
-    if (existingLogIndex >= 0) {
-      const log = { ...updatedLogs[existingLogIndex] };
-      const ranks = [...(log.keywordRanks || Array(6).fill(""))];
+    if (existingLog) {
+      const ranks = [...(existingLog.keywordRanks || Array(6).fill(""))];
       ranks[index] = value;
-      log.keywordRanks = ranks;
-      updatedLogs[existingLogIndex] = log;
+      updatedLogs[existingLogIndex] = { ...existingLog, keywordRanks: ranks };
     } else {
       const ranks = Array(6).fill("");
       ranks[index] = value;
+      const memo = getSavedMemos()[`${productId}_${selectedDate}`] || "";
       const newLog: PriceLog = {
         id: `log-${productId}-${selectedDate}`,
         date: selectedDate,
@@ -533,7 +598,9 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
         naverPrice: 0, naverShipping: 0, naverTotal: 0,
         coupangSeller: "", coupangPrice: 0, coupangShipping: 0, coupangTotal: 0,
         difference: 0,
-        keywordRanks: ranks
+        keywordRanks: ranks,
+        coupangKeywordRanks: Array(6).fill(""),
+        memo,
       };
       updatedLogs.push(newLog);
     }
@@ -545,16 +612,16 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
       (log) => log.productId === productId && log.date === selectedDate
     );
     const updatedLogs = [...priceLogs];
+    const existingLog = existingLogIndex >= 0 ? updatedLogs[existingLogIndex] : null;
     
-    if (existingLogIndex >= 0) {
-      const log = { ...updatedLogs[existingLogIndex] };
-      const ranks = [...(log.coupangKeywordRanks || Array(6).fill(""))];
+    if (existingLog) {
+      const ranks = [...(existingLog.coupangKeywordRanks || Array(6).fill(""))];
       ranks[index] = value;
-      log.coupangKeywordRanks = ranks;
-      updatedLogs[existingLogIndex] = log;
+      updatedLogs[existingLogIndex] = { ...existingLog, coupangKeywordRanks: ranks };
     } else {
       const ranks = Array(6).fill("");
       ranks[index] = value;
+      const memo = getSavedMemos()[`${productId}_${selectedDate}`] || "";
       const newLog: PriceLog = {
         id: `log-${productId}-${selectedDate}`,
         date: selectedDate,
@@ -563,7 +630,8 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
         coupangSeller: "", coupangPrice: 0, coupangShipping: 0, coupangTotal: 0,
         difference: 0,
         keywordRanks: Array(6).fill(""),
-        coupangKeywordRanks: ranks
+        coupangKeywordRanks: ranks,
+        memo,
       };
       updatedLogs.push(newLog);
     }
@@ -571,6 +639,8 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
   };
 
   const handleMemoChange = (productId: string, date: string, value: string) => {
+    saveMemoToLocalStorage(productId, date, value);
+
     const existingLogIndex = priceLogs.findIndex(
       (log) => log.productId === productId && log.date === date
     );
@@ -588,7 +658,8 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
         naverPrice: 0, naverShipping: 0, naverTotal: 0,
         coupangSeller: "", coupangPrice: 0, coupangShipping: 0, coupangTotal: 0,
         difference: 0,
-        keywordRanks: [],
+        keywordRanks: Array(6).fill(""),
+        coupangKeywordRanks: Array(6).fill(""),
         memo: value
       };
       updatedLogs.push(newLog);
@@ -704,9 +775,14 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
     if (!newProductName.trim()) return;
 
     const newId = `prod-${Date.now()}`;
+    const trimmedName = newProductName.trim();
+
+    // Explicit user action unblacklists product
+    unblacklistProduct(newId, trimmedName);
+
     const newProduct: Product = {
       id: newId,
-      name: newProductName.trim(),
+      name: trimmedName,
       naverUrl: newProductNaverUrl.trim() || undefined,
       coupangUrl: newProductCoupangUrl.trim() || undefined,
     };
@@ -726,12 +802,48 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
   };
 
   // Delete product
-  const handleDeleteProduct = (productId: string) => {
+  const handleDeleteProduct = async (productId: string) => {
+    const targetProd = products.find((p) => p.id === productId);
+    const targetName = targetProd?.name?.trim();
+
     if (confirm("정말로 이 품목과 연동된 가격 모니터링 로그를 삭제하시겠습니까?")) {
-      const updatedProducts = products.filter((p) => p.id !== productId);
+      // 1. Blacklist product ID & name (and variants) so it NEVER reappears unless explicitly added
+      saveDeletedProduct(productId, targetName);
+
+      // 2. Filter local state and storage
+      const updatedProducts = products.filter(
+        (p) => p.id !== productId && !isProductDeleted(p.id, p.name)
+      );
       const updatedLogs = priceLogs.filter((l) => l.productId !== productId);
       
-      saveToLocalStorage(updatedProducts, updatedLogs);
+      setProducts(updatedProducts);
+      setPriceLogs(updatedLogs);
+      localStorage.setItem("price_monitor_products", JSON.stringify(updatedProducts));
+      localStorage.setItem("price_monitor_logs", JSON.stringify(updatedLogs));
+
+      try {
+        const cpStr = localStorage.getItem("coupang_products");
+        if (cpStr) {
+          const cpList = JSON.parse(cpStr);
+          const filteredCp = cpList.filter((p: any) => !isProductDeleted(p.id, p.name));
+          localStorage.setItem("coupang_products", JSON.stringify(filteredCp));
+        }
+      } catch (e) {}
+
+      // 3. Delete from Supabase cloud database permanently across all tables
+      try {
+        await supabase.from("products").delete().eq("id", productId);
+        await supabase.from("price_logs").delete().eq("productId", productId);
+        await supabase.from("coupang_products").delete().eq("id", productId);
+        if (targetName) {
+          const prefix = targetName.split(/[\(\,]/)[0].trim();
+          await supabase.from("products").delete().ilike("name", `%${prefix}%`);
+          await supabase.from("coupang_products").delete().ilike("name", `%${prefix}%`);
+        }
+      } catch (e) {
+        console.error("Supabase delete error:", e);
+      }
+
       if (selectedProductId === productId) {
         setSelectedProductId(updatedProducts[0]?.id || "");
       }
@@ -1068,7 +1180,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                                   const newName = e.target.value.trim();
                                   if (newName && newName !== item.name) {
                                     const updatedProducts = products.map(p => p.id === item.id ? { ...p, name: newName } : p);
-                                    saveToLocalStorage(updatedProducts, priceLogs);
+                                    saveToLocalStorage(updatedProducts, priceLogs, true);
                                     showToast(`품목 이름이 '${newName}'(으)로 변경되었습니다.`);
                                   } else if (!newName) {
                                     e.target.value = item.name; // reset if empty
