@@ -386,8 +386,8 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
     );
     
     if (activeLog) {
-      setEditNaverPrice(activeLog.naverPrice.toString());
-      setEditNaverShipping(activeLog.naverShipping.toString());
+      setEditNaverPrice(activeLog.naverPrice === 0 ? "" : activeLog.naverPrice.toString());
+      setEditNaverShipping(activeLog.naverShipping === 0 ? "" : activeLog.naverShipping.toString());
       setEditCoupangSeller(activeLog.coupangSeller || "");
       setEditCoupangPrice(activeLog.coupangPrice === 0 ? "" : activeLog.coupangPrice.toString());
       setEditCoupangShipping(activeLog.coupangShipping === 0 ? "" : activeLog.coupangShipping.toString());
@@ -400,8 +400,8 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
       const mostRecentLog = pastLogs[0];
       
       if (mostRecentLog) {
-        setEditNaverPrice(mostRecentLog.naverPrice.toString());
-        setEditNaverShipping(mostRecentLog.naverShipping.toString());
+        setEditNaverPrice(mostRecentLog.naverPrice === 0 ? "" : mostRecentLog.naverPrice.toString());
+        setEditNaverShipping(mostRecentLog.naverShipping === 0 ? "" : mostRecentLog.naverShipping.toString());
         setEditCoupangSeller(mostRecentLog.coupangSeller || "");
         setEditCoupangPrice(mostRecentLog.coupangPrice === 0 ? "" : mostRecentLog.coupangPrice.toString());
         setEditCoupangShipping(mostRecentLog.coupangShipping === 0 ? "" : mostRecentLog.coupangShipping.toString());
@@ -2023,7 +2023,8 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                               type="number" 
                               placeholder="0"
                               value={editNaverPrice}
-                              onChange={(e) => setEditNaverPrice(e.target.value)}
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => setEditNaverPrice(e.target.value.replace(/^0+(?=\d)/, ''))}
                               className="bg-white border border-slate-200 rounded p-1.5 text-xs outline-none focus:border-amber-400"
                               id="input-naver-price"
                             />
@@ -2034,7 +2035,8 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                               type="number" 
                               placeholder="0"
                               value={editNaverShipping}
-                              onChange={(e) => setEditNaverShipping(e.target.value)}
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => setEditNaverShipping(e.target.value.replace(/^0+(?=\d)/, ''))}
                               className="bg-white border border-slate-200 rounded p-1.5 text-xs outline-none focus:border-amber-400"
                               id="input-naver-shipping"
                             />
@@ -2066,7 +2068,8 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                               type="number" 
                               placeholder="0"
                               value={editCoupangPrice}
-                              onChange={(e) => setEditCoupangPrice(e.target.value)}
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => setEditCoupangPrice(e.target.value.replace(/^0+(?=\d)/, ''))}
                               className="bg-white border border-slate-200 rounded p-1.5 text-xs outline-none focus:border-blue-400"
                               id="input-coupang-price"
                             />
@@ -2077,7 +2080,8 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                               type="number" 
                               placeholder="0"
                               value={editCoupangShipping}
-                              onChange={(e) => setEditCoupangShipping(e.target.value)}
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => setEditCoupangShipping(e.target.value.replace(/^0+(?=\d)/, ''))}
                               className="bg-white border border-slate-200 rounded p-1.5 text-xs outline-none focus:border-blue-400"
                               id="input-coupang-shipping"
                             />
