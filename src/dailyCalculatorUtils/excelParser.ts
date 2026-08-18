@@ -172,7 +172,7 @@ export async function parseExcelOrders(
     ['상품결제금액', '결제금액', '판매가', '판매금액', '주문금액', '상품금액', '총상품구매금액', '공급가', '총결제금액'],
     ['수수료', '단가']
   );
-  const unitPriceIdx = getColIdx(['개별단가', '단가', '옵션+판매', '상품단가'], ['원가']);
+  const unitPriceIdx = getColIdx(['개별단가', '단가', '옵션+판매가', '옵션+판매', '상품단가'], ['원가']);
   const shippingIdx = getColIdx(
     [
       '택배비',
@@ -303,10 +303,20 @@ export async function parseExcelOrders(
     const upVal = getVal(unitPriceIdx);
     let rawUnitPrice = upVal !== undefined ? Number(String(upVal).replace(/[^0-9.-]/g, '')) || 0 : 0;
 
-    if (rawPrice === 0 && rawUnitPrice > 0) {
-      rawPrice = rawUnitPrice * quantity;
-    } else if (rawPrice > 0 && rawUnitPrice === 0) {
-      rawUnitPrice = Math.round(rawPrice / quantity);
+    if (platform === 'homepage') {
+      // For homepage (자사몰), the selling price must be exactly the "옵션+판매" (unit price) column value,
+      // and the total price should be unit price * quantity.
+      if (rawUnitPrice > 0) {
+        rawPrice = rawUnitPrice * quantity;
+      } else if (rawPrice > 0) {
+        rawUnitPrice = Math.round(rawPrice / quantity);
+      }
+    } else {
+      if (rawPrice === 0 && rawUnitPrice > 0) {
+        rawPrice = rawUnitPrice * quantity;
+      } else if (rawPrice > 0 && rawUnitPrice === 0) {
+        rawUnitPrice = Math.round(rawPrice / quantity);
+      }
     }
 
     // Shipping fee
