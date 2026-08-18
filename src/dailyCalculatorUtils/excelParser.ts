@@ -280,8 +280,13 @@ export async function parseExcelOrders(
       ? String(rawOrderNo).trim()
       : '';
 
-    if (!orderNumber && productNumber) {
+    // G마켓, 11번가, 옥션은 주문번호 대신 상품번호를 주문번호 칸에 매핑해 줍니다.
+    if ((platform === 'gmarket' || platform === 'elevenst' || platform === 'auction') && productNumber) {
       orderNumber = productNumber;
+    } else {
+      if (!orderNumber && productNumber) {
+        orderNumber = productNumber;
+      }
     }
     if (!orderNumber) {
       orderNumber = `ORD-${r}`;
