@@ -1,4 +1,4 @@
-import { CostItem, OrderItem, PlatformConfig, SettlementSettings } from '../types';
+import { CostItem, OrderItem, PlatformConfig, SettlementSettings } from '../dailyCalculatorTypes';
 
 export const PLATFORMS: Record<string, PlatformConfig> = {
   smartstore: {

@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { CostItem, OrderItem, PlatformType, SettlementSettings } from '../types';
+import { CostItem, OrderItem, PlatformType, SettlementSettings } from '../dailyCalculatorTypes';
 import { recalculateOrder } from './calculator';
 
 /**
@@ -173,7 +173,7 @@ export async function parseExcelOrders(
     ['배송비 형태', '배송비유형', '배송비종류', '배송비구분', '배송비조건', '배송조건', '배송비 속성', '배송비 결제방식', '택배사']
   );
   const feeIdx = getColIdx(
-    ['결제수수료', '수수료합계', '수수료', '수수료1', '수수료합', '중개수수료', '네이버페이 수수료'],
+    ['결제수수료', '수수료합계', '수수료', '수수료1', '수수료합', '중개수수료', '네이버페이 수수료', '서비스이용료', '서비스이용수수료', '이용료', '공제금액', '공제합계'],
     ['매출연동', '수수료율', '수수료%', '지식']
   );
   const kFeeIdx = getColIdx(['매출연동 수수료', '매출연동', '지식쇼핑 수수료', '지식쇼핑', '지식', '쇼핑수수료'], ['수수료율', '수수료%']);
