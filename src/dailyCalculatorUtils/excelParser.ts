@@ -175,6 +175,7 @@ export async function parseExcelOrders(
   const unitPriceIdx = getColIdx(['개별단가', '단가', '옵션+판매', '상품단가'], ['원가']);
   const shippingIdx = getColIdx(
     [
+      '택배비',
       '배송비 합계',
       '배송비 금액',
       '배송비금액',
@@ -187,6 +188,7 @@ export async function parseExcelOrders(
       '정산배송비',
       '고객부담배송비',
       '배송비',
+      '택배',
     ],
     [
       '배송비 형태',
