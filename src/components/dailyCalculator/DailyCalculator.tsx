@@ -293,7 +293,11 @@ export default function DailyCalculator() {
     if (appendMode) {
       mergedOrders = [...newOrders, ...orders];
     } else {
-      mergedOrders = newOrders;
+      // Find the platforms being imported
+      const platformsToReplace = new Set(newOrders.map((o) => o.platform));
+      // Keep existing orders from other platforms untouched
+      const preservedOrders = orders.filter((o) => !platformsToReplace.has(o.platform));
+      mergedOrders = [...newOrders, ...preservedOrders];
     }
     const processed = processAllOrders(mergedOrders, currentCosts, settings);
     setOrders(processed);
