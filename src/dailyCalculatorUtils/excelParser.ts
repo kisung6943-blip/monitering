@@ -167,7 +167,7 @@ export async function parseExcelOrders(
   );
   const optionIdx = getColIdx(['옵션정보', '선택옵션', '옵션명', '옵션 세부', '옵션'], ['옵션id']);
   const qtyIdx = getColIdx(['수량', '구매수량', '수량(개)', '구매 수량']);
-  const recipientIdx = getColIdx(['수취인명', '수취인', '수령인', '구매자명', '구매자', '고객명', '받는사람', '받는분']);
+  const recipientIdx = getColIdx(['수취인명', '수취인', '수령인', '수령자', '구매자명', '구매자', '고객명', '받는사람', '받는분']);
   const priceIdx = getColIdx(
     ['상품결제금액', '결제금액', '판매가', '판매금액', '주문금액', '상품금액', '총상품구매금액', '공급가', '총결제금액'],
     ['수수료', '단가']
@@ -206,16 +206,16 @@ export async function parseExcelOrders(
   );
   const feeIdx = getColIdx(
     ['결제수수료', '수수료합계', '수수료', '수수료1', '수수료합', '중개수수료', '네이버페이 수수료', '서비스이용료', '서비스이용수수료', '이용료', '공제금액', '공제합계'],
-    ['매출연동', '수수료율', '수수료%', '지식']
+    ['송장', '배송비', '정산', '쿠폰']
   );
-  const kFeeIdx = getColIdx(['매출연동 수수료', '매출연동', '지식쇼핑 수수료', '지식쇼핑', '지식', '쇼핑수수료'], ['수수료율', '수수료%']);
+  const kFeeIdx = getColIdx(['매출연동수수료', '지식쇼핑', '네이버쇼핑', '지식쇼핑수수료', '네이버쇼핑매출연동수수료']);
   const settlementIdx = getColIdx(
-    ['정산예정금액', '정산가', '정산금액', '정산금', '결산예정', '정산 예정 금액', '정산'],
-    ['정산일', '정산주기', '정산상태']
+    ['정산금액', '정산예정금액', '정산금액합계', '송금금액', '실정산금액', '정산합계', '정산가'],
+    ['수수료', '단가', '배송비']
   );
-  const costIdx = getColIdx(['매입원가', '개당원가', '원가합계', '원가']);
-  const packagingIdx = getColIdx(['포장비', '포장', '포장재비', '포장박스']);
-  const actualShipIdx = getColIdx(['실배송비', '실택배비', '실제배송비', '택배비2'], ['고객배송비', '배송비 형태', '수취인']);
+  const costIdx = getColIdx(['매입원가', '원가', '매입가', '원가단가', '사입가'], ['판매가', '단가']);
+  const packagingIdx = getColIdx(['포장비', '포장원가', '포장자재비', '부자재비']);
+  const actualShipIdx = getColIdx(['실배송비', '택배비용', '실제배송비', '배송원가']);
 
   const parsedOrders: OrderItem[] = [];
   const activeSettings = settings || {
@@ -272,13 +272,20 @@ export async function parseExcelOrders(
 
     const orderDateRaw = getVal(dateIdx) !== undefined ? cleanDateStr(getVal(dateIdx)) : todayStr;
 
-    const rawOrderNo = getVal(orderNoIdx);
-    const orderNumber = (rawOrderNo !== undefined && rawOrderNo !== null && String(rawOrderNo).trim() !== '')
-      ? String(rawOrderNo).trim()
-      : `ORD-${r}`;
-
     const rawProductNo = getVal(productNoIdx);
     const productNumber = (rawProductNo !== undefined && rawProductNo !== null) ? String(rawProductNo).trim() : '';
+
+    const rawOrderNo = getVal(orderNoIdx);
+    let orderNumber = (rawOrderNo !== undefined && rawOrderNo !== null && String(rawOrderNo).trim() !== '')
+      ? String(rawOrderNo).trim()
+      : '';
+
+    if (!orderNumber && productNumber) {
+      orderNumber = productNumber;
+    }
+    if (!orderNumber) {
+      orderNumber = `ORD-${r}`;
+    }
 
     const optionName = getVal(optionIdx) !== undefined ? String(getVal(optionIdx)).trim() : '기본';
     const quantity = Math.max(1, Number(getVal(qtyIdx) !== undefined ? String(getVal(qtyIdx)).replace(/[^0-9.-]/g, '') : 1) || 1);

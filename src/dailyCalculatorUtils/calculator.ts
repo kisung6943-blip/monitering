@@ -143,23 +143,28 @@ export function recalculateOrder(
     // 스마트스토어: 결제수수료 + 지식쇼핑수수료
     if (order.settlementAmount && order.settlementAmount > 0) {
       const rawSettlement = Math.abs(Number(order.settlementAmount));
-      if (order.feeAmount !== undefined) {
-        feeAmount = Math.abs(Number(order.feeAmount));
-      } else {
-        // If settlementAmount is given but feeAmount is not, compute from difference
-        const diffWithShip = (totalPrice + buyerShippingFee) - rawSettlement;
-        const diffWithoutShip = totalPrice - rawSettlement;
-        const totalFee = rawSettlement > totalPrice 
-          ? Math.max(0, diffWithShip) 
-          : Math.max(0, buyerShippingFee > 0 && diffWithShip >= 0 ? diffWithShip : diffWithoutShip);
+      
+      const diffWithShip = (totalPrice + buyerShippingFee) - rawSettlement;
+      const diffWithoutShip = totalPrice - rawSettlement;
+      const totalFee = rawSettlement > totalPrice 
+        ? Math.max(0, diffWithShip) 
+        : Math.max(0, buyerShippingFee > 0 && diffWithShip >= 0 ? diffWithShip : diffWithoutShip);
         
-        const kFee = order.knowledgeShoppingFee !== undefined ? Math.abs(Number(order.knowledgeShoppingFee)) : 0;
+      const kFee = order.knowledgeShoppingFee !== undefined ? Math.abs(Number(order.knowledgeShoppingFee)) : 0;
+      
+      if (order.feeAmount !== undefined) {
+        const explicitFee = Math.abs(Number(order.feeAmount));
+        feeAmount = Math.max(explicitFee, totalFee - kFee);
+      } else {
         feeAmount = Math.max(0, totalFee - kFee);
       }
+      
       if (order.knowledgeShoppingFee !== undefined) {
         knowledgeShoppingFee = Math.abs(Number(order.knowledgeShoppingFee));
       }
-      settlementAmount = totalPrice - (feeAmount + knowledgeShoppingFee);
+      
+      // Use the raw settlement amount from Excel directly
+      settlementAmount = rawSettlement;
     } else if (order.feeAmount !== undefined && order.knowledgeShoppingFee !== undefined) {
       feeAmount = Math.abs(Number(order.feeAmount));
       knowledgeShoppingFee = Math.abs(Number(order.knowledgeShoppingFee));
@@ -175,20 +180,25 @@ export function recalculateOrder(
     // 쿠팡, 자사몰, 11번가, G마켓, 옥션
     if (order.settlementAmount && order.settlementAmount > 0) {
       const rawSettlement = Math.abs(Number(order.settlementAmount));
-      if (order.feeAmount !== undefined) {
-        feeAmount = Math.abs(Number(order.feeAmount));
+      
+      const diffWithShip = (totalPrice + buyerShippingFee) - rawSettlement;
+      const diffWithoutShip = totalPrice - rawSettlement;
+      let computedFee = 0;
+      if (rawSettlement > totalPrice) {
+        computedFee = Math.max(0, diffWithShip);
       } else {
-        // If settlementAmount is given but feeAmount is not, compute from difference
-        const diffWithShip = (totalPrice + buyerShippingFee) - rawSettlement;
-        const diffWithoutShip = totalPrice - rawSettlement;
-        
-        if (rawSettlement > totalPrice) {
-          feeAmount = Math.max(0, diffWithShip);
-        } else {
-          feeAmount = Math.max(0, buyerShippingFee > 0 && diffWithShip >= 0 ? diffWithShip : diffWithoutShip);
-        }
+        computedFee = Math.max(0, buyerShippingFee > 0 && diffWithShip >= 0 ? diffWithShip : diffWithoutShip);
       }
-      settlementAmount = totalPrice - feeAmount;
+      
+      if (order.feeAmount !== undefined) {
+        const explicitFee = Math.abs(Number(order.feeAmount));
+        feeAmount = Math.max(explicitFee, computedFee);
+      } else {
+        feeAmount = computedFee;
+      }
+      
+      // Use the raw settlement amount from Excel directly
+      settlementAmount = rawSettlement;
     } else if (order.feeAmount !== undefined) {
       feeAmount = Math.abs(Number(order.feeAmount));
       settlementAmount = totalPrice - feeAmount;
