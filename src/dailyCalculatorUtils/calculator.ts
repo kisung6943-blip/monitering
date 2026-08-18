@@ -112,7 +112,9 @@ export function getPlatformFeeRate(
 export function recalculateOrder(
   order: Partial<OrderItem>,
   settings: SettlementSettings,
-  isBundleSubItem: boolean = false
+  isBundleSubItem: boolean = false,
+  overrideActualShippingToZero?: boolean,
+  overrideBuyerShippingToZero?: boolean
 ): OrderItem {
   const platform = order.platform || 'smartstore';
   const quantity = Math.max(1, Number(order.quantity) || 1);
@@ -120,7 +122,9 @@ export function recalculateOrder(
   const totalPrice = order.totalPrice !== undefined ? Number(order.totalPrice) : unitPrice * quantity;
 
   // Buyer shipping fee: if bundle sub-item, 0 unless specified
-  const buyerShippingFee = isBundleSubItem ? 0 : Number(order.buyerShippingFee) || 0;
+  const buyerShippingFee = (overrideBuyerShippingToZero !== undefined ? overrideBuyerShippingToZero : isBundleSubItem)
+    ? 0
+    : Number(order.buyerShippingFee) || 0;
   const isShippingFree = buyerShippingFee === 0;
 
   // Platform fee calculation
@@ -218,7 +222,7 @@ export function recalculateOrder(
     packagingCost = 0;
   }
 
-  const actualShippingCost = isBundleSubItem
+  const actualShippingCost = (overrideActualShippingToZero !== undefined ? overrideActualShippingToZero : isBundleSubItem)
     ? 0
     : order.actualShippingCost !== undefined
     ? Number(order.actualShippingCost)
@@ -343,8 +347,32 @@ export function processAllOrders(
     const isMulti = groupItems.length > 1 && Boolean(groupItems[0].recipient.trim());
     const bundleGroupId = isMulti ? `BUNDLE-${key.replace(/[^a-zA-Z0-9가-힣]/g, '')}` : undefined;
 
+    let actualShippingRepIndex = 0;
+    let buyerShippingRepIndex = -1;
+
+    if (isMulti) {
+      // Find the first free shipping item (buyerShippingFee === 0) to be the representative for actual shipping cost
+      const freeIdx = groupItems.findIndex((item) => (Number(item.buyerShippingFee) || 0) === 0);
+      if (freeIdx >= 0) {
+        actualShippingRepIndex = freeIdx;
+      }
+      
+      // Find the first paid shipping item to preserve the customer shipping fee
+      buyerShippingRepIndex = groupItems.findIndex((item) => (Number(item.buyerShippingFee) || 0) > 0);
+    }
+
     groupItems.forEach((item, index) => {
       const isSubItem = isMulti && index > 0;
+      
+      let overrideActualShippingToZero = undefined;
+      let overrideBuyerShippingToZero = undefined;
+
+      if (isMulti) {
+        overrideActualShippingToZero = index !== actualShippingRepIndex;
+        // Keep the paid shipping fee only on the representative buyer shipping index, zero out others to prevent duplication
+        overrideBuyerShippingToZero = (Number(item.buyerShippingFee) || 0) > 0 && index !== buyerShippingRepIndex;
+      }
+
       const updated = recalculateOrder(
         {
           ...item,
@@ -352,7 +380,9 @@ export function processAllOrders(
           bundleGroupId,
         },
         settings,
-        isSubItem
+        isSubItem,
+        overrideActualShippingToZero,
+        overrideBuyerShippingToZero
       );
       result.push(updated);
     });
