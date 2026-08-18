@@ -353,14 +353,14 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
           <table className="min-w-full text-xs text-left border-collapse">
             <thead className="bg-slate-100 text-slate-700 font-bold sticky top-0 z-10 border-b border-slate-300 shadow-xs">
               <tr className="divide-x divide-slate-300">
+                <th className="py-2.5 px-4 whitespace-nowrap min-w-[280px] bg-amber-200 text-amber-950 sticky left-0 z-20 border-r border-slate-300 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
+                  상품명
+                </th>
                 <th className="py-2.5 px-3 whitespace-nowrap bg-amber-100/70 text-amber-900">날짜</th>
                 <th className="py-2.5 px-3 whitespace-nowrap bg-amber-100/70 text-amber-900">주문번호</th>
                 {platform === 'smartstore' && (
                   <th className="py-2.5 px-3 whitespace-nowrap bg-amber-100/70 text-amber-900">상품번호</th>
                 )}
-                <th className="py-2.5 px-4 whitespace-nowrap min-w-[280px] bg-amber-200/80 text-amber-950">
-                  상품명
-                </th>
                 <th className="py-2.5 px-3 whitespace-nowrap min-w-[160px] bg-amber-100/70 text-amber-900">
                   옵션명
                 </th>
@@ -438,31 +438,16 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
                   return (
                     <tr
                       key={ord.id}
-                      className={`divide-x divide-slate-200 hover:bg-amber-50/40 transition-colors ${
+                      className={`group divide-x divide-slate-200 hover:bg-amber-50/40 transition-colors ${
                         idx % 2 === 1 ? 'bg-slate-50/50' : 'bg-white'
                       } ${!ord.isCostMatched ? 'bg-rose-50/40' : ''}`}
                     >
-                      {/* 1. Date */}
-                      <td className="py-2 px-3 whitespace-nowrap font-medium text-slate-900">
-                        {ord.orderDate}
-                      </td>
-
-                      {/* 2. Order Number */}
-                      <td className="py-2 px-3 whitespace-nowrap font-mono text-[11px] text-slate-600">
-                        {ord.orderNumber}
-                      </td>
-
-                      {/* 3. Product Number (for smartstore) */}
-                      {platform === 'smartstore' && (
-                        <td className="py-2 px-3 whitespace-nowrap font-mono text-[11px] text-slate-500">
-                          {ord.productNumber || '-'}
-                        </td>
-                      )}
-
-                      {/* 4. Product Name */}
+                      {/* 1. Product Name (Sticky Left) */}
                       <td
                         onClick={() => handleStartEdit(ord, 'productName', ord.productName)}
-                        className="py-2 px-4 font-semibold text-slate-900 max-w-[420px] truncate hover:bg-yellow-50 cursor-pointer"
+                        className={`py-2 px-4 font-semibold text-slate-900 max-w-[420px] truncate hover:bg-yellow-50 cursor-pointer sticky left-0 z-10 border-r border-slate-300 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)] transition-colors ${
+                          idx % 2 === 1 ? 'bg-slate-50 group-hover:bg-amber-50/80' : 'bg-white group-hover:bg-amber-50/80'
+                        } ${!ord.isCostMatched ? 'bg-rose-50 group-hover:bg-rose-100/90' : ''}`}
                         title={ord.productName}
                       >
                         {editingCell?.id === ord.id && editingCell?.field === 'productName' ? (
@@ -486,6 +471,23 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
                           </div>
                         )}
                       </td>
+
+                      {/* 2. Date */}
+                      <td className="py-2 px-3 whitespace-nowrap font-medium text-slate-900">
+                        {ord.orderDate}
+                      </td>
+
+                      {/* 3. Order Number */}
+                      <td className="py-2 px-3 whitespace-nowrap font-mono text-[11px] text-slate-600">
+                        {ord.orderNumber}
+                      </td>
+
+                      {/* 4. Product Number (for smartstore) */}
+                      {platform === 'smartstore' && (
+                        <td className="py-2 px-3 whitespace-nowrap font-mono text-[11px] text-slate-500">
+                          {ord.productNumber || '-'}
+                        </td>
+                      )}
 
                       {/* 5. Option Name */}
                       <td
@@ -798,10 +800,16 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
             {filteredOrders.length > 0 && (
               <tfoot className="bg-amber-200/90 text-slate-950 font-black border-t-2 border-slate-400 sticky bottom-0 z-10 shadow-md">
                 <tr className="divide-x divide-slate-400">
-                  <td className="py-3 px-3">합계 ({filteredOrders.length}건)</td>
-                  <td className="py-3 px-3">-</td>
-                  {platform === 'smartstore' && <td className="py-3 px-3">-</td>}
-                  <td className="py-3 px-4 font-extrabold text-slate-900">전체 품목 합계</td>
+                  {/* 1. Product Name Column (Sticky left) */}
+                  <td className="py-3 px-4 font-extrabold text-slate-900 sticky left-0 z-10 bg-amber-200 border-r border-slate-400 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
+                    전체 품목 합계
+                  </td>
+                  {/* 2. Date Column */}
+                  <td className="py-3 px-3 bg-amber-100">합계 ({filteredOrders.length}건)</td>
+                  {/* 3. Order Number Column */}
+                  <td className="py-3 px-3 bg-amber-100">-</td>
+                  {/* 4. Product Number Column (for smartstore) */}
+                  {platform === 'smartstore' && <td className="py-3 px-3 bg-amber-100">-</td>}
                   <td className="py-3 px-3">-</td>
                   <td className="py-3 px-2.5 text-center">
                     {filteredOrders.reduce((s, o) => s + o.quantity, 0)}
