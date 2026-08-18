@@ -134,17 +134,22 @@ export async function parseExcelOrders(
 
   // Map header column indices safely against undefined/hole items, spaces, and exclusions
   const getColIdx = (keywords: string[], excludeKeywords: string[] = []): number => {
-    return rawHeaders.findIndex((h) => {
-      if (typeof h !== 'string' || !h.trim()) return false;
-      const cleanH = h.replace(/\s+/g, '').toLowerCase();
+    for (const kw of keywords) {
+      const cleanKw = kw.replace(/\s+/g, '').toLowerCase();
+      const idx = rawHeaders.findIndex((h) => {
+        if (typeof h !== 'string' || !h.trim()) return false;
+        const cleanH = h.replace(/\s+/g, '').toLowerCase();
 
-      // Skip if header matches any exclusion keyword
-      if (excludeKeywords.some((ex) => cleanH.includes(ex.replace(/\s+/g, '').toLowerCase()))) {
-        return false;
-      }
+        // Skip if header matches any exclusion keyword
+        if (excludeKeywords.some((ex) => cleanH.includes(ex.replace(/\s+/g, '').toLowerCase()))) {
+          return false;
+        }
 
-      return keywords.some((kw) => cleanH.includes(kw.replace(/\s+/g, '').toLowerCase()));
-    });
+        return cleanH.includes(cleanKw);
+      });
+      if (idx !== -1) return idx;
+    }
+    return -1;
   };
 
   const dateIdx = getColIdx(['날짜', '주문일시', '결제일시', '주문일자', '결제일자', '주문일', '결제일', '발송일', '일자']);
@@ -169,8 +174,33 @@ export async function parseExcelOrders(
   );
   const unitPriceIdx = getColIdx(['개별단가', '단가', '옵션+판매', '상품단가'], ['원가']);
   const shippingIdx = getColIdx(
-    ['배송비 합계', '배송비 금액', '배송비금액', '총배송비', '총 배송비', '고객배송비', '배송비결제', '배송비2', '배송비'],
-    ['배송비 형태', '배송비유형', '배송비종류', '배송비구분', '배송비조건', '배송조건', '배송비 속성', '배송비 결제방식', '택배사']
+    [
+      '배송비 합계',
+      '배송비 금액',
+      '배송비금액',
+      '총배송비',
+      '총 배송비',
+      '고객배송비',
+      '배송비2',
+      '선결제배송비',
+      '선결제 배송비',
+      '정산배송비',
+      '고객부담배송비',
+      '배송비',
+    ],
+    [
+      '배송비 형태',
+      '배송비유형',
+      '배송비종류',
+      '배송비구분',
+      '배송비조건',
+      '배송조건',
+      '배송비 속성',
+      '배송비 결제방식',
+      '배송비결제방식',
+      '배송비결제',
+      '택배사',
+    ]
   );
   const feeIdx = getColIdx(
     ['결제수수료', '수수료합계', '수수료', '수수료1', '수수료합', '중개수수료', '네이버페이 수수료', '서비스이용료', '서비스이용수수료', '이용료', '공제금액', '공제합계'],
