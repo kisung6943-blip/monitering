@@ -122,7 +122,12 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
   // Cell Edit Handlers
   const handleStartEdit = (order: OrderItem, field: string, currentValue: any) => {
     setEditingCell({ id: order.id, field });
-    setEditValue(String(currentValue !== undefined ? currentValue : ''));
+    const textFields = ['productName', 'optionName', 'recipient', 'orderDate', 'orderNumber', 'productNumber'];
+    if (!textFields.includes(field) && (currentValue === 0 || currentValue === '0')) {
+      setEditValue('');
+    } else {
+      setEditValue(String(currentValue !== undefined ? currentValue : ''));
+    }
   };
 
   const handleSaveEdit = (order: OrderItem) => {
@@ -457,6 +462,7 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
                             onChange={(e) => setEditValue(e.target.value)}
                             onBlur={() => handleSaveEdit(ord)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(ord)}
+                            onFocus={(e) => e.target.select()}
                             autoFocus
                             className="w-full text-xs p-1 border rounded bg-white"
                           />
@@ -502,6 +508,7 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
                             onChange={(e) => setEditValue(e.target.value)}
                             onBlur={() => handleSaveEdit(ord)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(ord)}
+                            onFocus={(e) => e.target.select()}
                             autoFocus
                             className="w-full text-xs p-1 border rounded bg-white"
                           />
@@ -522,6 +529,7 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
                             onChange={(e) => setEditValue(e.target.value)}
                             onBlur={() => handleSaveEdit(ord)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(ord)}
+                            onFocus={(e) => e.target.select()}
                             autoFocus
                             className="w-12 text-xs p-1 border rounded bg-white text-center"
                           />
@@ -542,6 +550,7 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
                             onChange={(e) => setEditValue(e.target.value)}
                             onBlur={() => handleSaveEdit(ord)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(ord)}
+                            onFocus={(e) => e.target.select()}
                             autoFocus
                             className="w-20 text-xs p-1 border rounded bg-white text-right"
                           />
@@ -562,6 +571,7 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
                             onChange={(e) => setEditValue(e.target.value)}
                             onBlur={() => handleSaveEdit(ord)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(ord)}
+                            onFocus={(e) => e.target.select()}
                             autoFocus
                             className="w-20 text-xs p-1 border rounded bg-white"
                           />
@@ -596,6 +606,7 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
                             onChange={(e) => setEditValue(e.target.value)}
                             onBlur={() => handleSaveEdit(ord)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(ord)}
+                            onFocus={(e) => e.target.select()}
                             autoFocus
                             className="w-16 text-xs p-1 border rounded bg-white text-right"
                           />
@@ -618,6 +629,7 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
                             onChange={(e) => setEditValue(e.target.value)}
                             onBlur={() => handleSaveEdit(ord)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(ord)}
+                            onFocus={(e) => e.target.select()}
                             autoFocus
                             className="w-16 text-xs p-1 border rounded bg-white text-right"
                           />
@@ -639,6 +651,7 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
                               onChange={(e) => setEditValue(e.target.value)}
                               onBlur={() => handleSaveEdit(ord)}
                               onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(ord)}
+                              onFocus={(e) => e.target.select()}
                               autoFocus
                               className="w-16 text-xs p-1 border rounded bg-white text-right"
                             />
@@ -660,6 +673,7 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
                             onChange={(e) => setEditValue(e.target.value)}
                             onBlur={() => handleSaveEdit(ord)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(ord)}
+                            onFocus={(e) => e.target.select()}
                             autoFocus
                             className="w-20 text-xs p-1 border rounded bg-white text-right font-bold"
                           />
@@ -680,6 +694,7 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
                             onChange={(e) => setEditValue(e.target.value)}
                             onBlur={() => handleSaveEdit(ord)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(ord)}
+                            onFocus={(e) => e.target.select()}
                             autoFocus
                             className="w-16 text-xs p-1 border rounded bg-white text-right font-bold text-rose-900"
                           />
@@ -715,6 +730,7 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
                             onChange={(e) => setEditValue(e.target.value)}
                             onBlur={() => handleSaveEdit(ord)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(ord)}
+                            onFocus={(e) => e.target.select()}
                             autoFocus
                             className="w-14 text-xs p-1 border rounded bg-white text-right"
                           />
@@ -737,6 +753,7 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
                             onChange={(e) => setEditValue(e.target.value)}
                             onBlur={() => handleSaveEdit(ord)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(ord)}
+                            onFocus={(e) => e.target.select()}
                             autoFocus
                             className="w-16 text-xs p-1 border rounded bg-white text-right"
                           />
