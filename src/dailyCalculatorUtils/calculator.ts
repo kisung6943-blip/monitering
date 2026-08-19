@@ -150,51 +150,25 @@ export function recalculateOrder(
       
       const diffWithShip = (totalPrice + buyerShippingFee) - rawSettlement;
       const diffWithoutShip = totalPrice - rawSettlement;
-      
-      let totalFee = 0;
-      if (buyerShippingFee > 0) {
-        const expectedRate = settings.smartstoreBaseFee + settings.smartstoreKnowledgeFee;
-        const expectedFee = totalPrice * (expectedRate / 100);
+      const totalFee = rawSettlement > totalPrice 
+        ? Math.max(0, diffWithShip) 
+        : Math.max(0, buyerShippingFee > 0 && diffWithShip >= 0 ? diffWithShip : diffWithoutShip);
         
-        const errorWithShip = Math.abs(diffWithShip - expectedFee);
-        const errorWithoutShip = Math.abs(diffWithoutShip - expectedFee);
-        
-        if (errorWithShip < errorWithoutShip) {
-          totalFee = Math.max(0, diffWithShip);
-          settlementAmount = Math.max(0, rawSettlement - buyerShippingFee);
-        } else {
-          totalFee = Math.max(0, diffWithoutShip);
-          settlementAmount = rawSettlement;
-        }
-      } else {
-        totalFee = Math.max(0, diffWithoutShip);
-        settlementAmount = rawSettlement;
-      }
-      
-      const kFee = order.knowledgeShoppingFee !== undefined 
-        ? Math.abs(Number(order.knowledgeShoppingFee)) 
-        : Math.round(totalPrice * (settings.smartstoreKnowledgeFee / 100));
+      const kFee = order.knowledgeShoppingFee !== undefined ? Math.abs(Number(order.knowledgeShoppingFee)) : 0;
       
       if (order.feeAmount !== undefined) {
         const explicitFee = Math.abs(Number(order.feeAmount));
-        const expectedRate = settings.smartstoreBaseFee + settings.smartstoreKnowledgeFee;
-        const expectedFee = totalPrice * (expectedRate / 100);
-        
-        // Healing logic: if explicit fee + kFee matches the buggy diffWithShip,
-        // but the error minimizing logic chose diffWithoutShip (which is closer to expected fee)
-        if (buyerShippingFee > 0 &&
-            Math.abs((explicitFee + kFee) - diffWithShip) < 5 &&
-            Math.abs(totalFee - diffWithoutShip) < 5 &&
-            Math.abs(diffWithShip - expectedFee) > Math.abs(diffWithoutShip - expectedFee) + 100) {
-          feeAmount = Math.max(0, totalFee - kFee);
-        } else {
-          feeAmount = explicitFee;
-        }
+        feeAmount = Math.max(explicitFee, totalFee - kFee);
       } else {
         feeAmount = Math.max(0, totalFee - kFee);
       }
       
-      knowledgeShoppingFee = kFee;
+      if (order.knowledgeShoppingFee !== undefined) {
+        knowledgeShoppingFee = Math.abs(Number(order.knowledgeShoppingFee));
+      }
+      
+      // Use the raw settlement amount from Excel directly
+      settlementAmount = rawSettlement;
     } else if (order.feeAmount !== undefined && order.knowledgeShoppingFee !== undefined) {
       feeAmount = Math.abs(Number(order.feeAmount));
       knowledgeShoppingFee = Math.abs(Number(order.knowledgeShoppingFee));
@@ -213,43 +187,22 @@ export function recalculateOrder(
       
       const diffWithShip = (totalPrice + buyerShippingFee) - rawSettlement;
       const diffWithoutShip = totalPrice - rawSettlement;
-      
       let computedFee = 0;
-      if (buyerShippingFee > 0) {
-        const expectedFee = totalPrice * (feeRate / 100);
-        
-        const errorWithShip = Math.abs(diffWithShip - expectedFee);
-        const errorWithoutShip = Math.abs(diffWithoutShip - expectedFee);
-        
-        if (errorWithShip < errorWithoutShip) {
-          computedFee = Math.max(0, diffWithShip);
-          settlementAmount = Math.max(0, rawSettlement - buyerShippingFee);
-        } else {
-          computedFee = Math.max(0, diffWithoutShip);
-          settlementAmount = rawSettlement;
-        }
+      if (rawSettlement > totalPrice) {
+        computedFee = Math.max(0, diffWithShip);
       } else {
-        computedFee = Math.max(0, diffWithoutShip);
-        settlementAmount = rawSettlement;
+        computedFee = Math.max(0, buyerShippingFee > 0 && diffWithShip >= 0 ? diffWithShip : diffWithoutShip);
       }
       
       if (order.feeAmount !== undefined) {
         const explicitFee = Math.abs(Number(order.feeAmount));
-        const expectedFee = totalPrice * (feeRate / 100);
-        
-        // Healing logic: if explicit fee matches the buggy diffWithShip,
-        // but the error minimizing logic chose diffWithoutShip (which is closer to expected fee)
-        if (buyerShippingFee > 0 &&
-            Math.abs(explicitFee - diffWithShip) < 5 &&
-            Math.abs(computedFee - diffWithoutShip) < 5 &&
-            Math.abs(diffWithShip - expectedFee) > Math.abs(diffWithoutShip - expectedFee) + 100) {
-          feeAmount = computedFee;
-        } else {
-          feeAmount = explicitFee;
-        }
+        feeAmount = Math.max(explicitFee, computedFee);
       } else {
         feeAmount = computedFee;
       }
+      
+      // Use the raw settlement amount from Excel directly
+      settlementAmount = rawSettlement;
     } else if (order.feeAmount !== undefined) {
       feeAmount = Math.abs(Number(order.feeAmount));
       settlementAmount = totalPrice - feeAmount;
