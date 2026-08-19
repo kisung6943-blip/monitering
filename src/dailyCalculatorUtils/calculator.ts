@@ -351,20 +351,33 @@ export function processAllOrders(
     let buyerShippingRepIndex = -1;
 
     if (isMulti) {
-      // Find free shipping items (buyerShippingFee === 0) and pick the one with highest totalPrice to be representative
-      const freeItems = groupItems
+      // Priority 1: If there are paid shipping items (buyerShippingFee > 0), pick the one with highest buyerShippingFee / totalPrice
+      const paidItems = groupItems
         .map((item, idx) => ({ item, idx }))
-        .filter((x) => (Number(x.item.buyerShippingFee) || 0) === 0);
+        .filter((x) => (Number(x.item.buyerShippingFee) || 0) > 0);
 
-      if (freeItems.length > 0) {
-        freeItems.sort((a, b) => (Number(b.item.totalPrice) || 0) - (Number(a.item.totalPrice) || 0));
-        actualShippingRepIndex = freeItems[0].idx;
+      if (paidItems.length > 0) {
+        paidItems.sort((a, b) => {
+          const feeDiff = (Number(b.item.buyerShippingFee) || 0) - (Number(a.item.buyerShippingFee) || 0);
+          if (feeDiff !== 0) return feeDiff;
+          return (Number(b.item.totalPrice) || 0) - (Number(a.item.totalPrice) || 0);
+        });
+        actualShippingRepIndex = paidItems[0].idx;
       } else {
-        // If no free shipping items exist, pick highest totalPrice item among paid items
-        const sortedAll = groupItems
+        // Priority 2: If all items are free shipping, pick the one with highest totalPrice
+        const freeItems = groupItems
           .map((item, idx) => ({ item, idx }))
-          .sort((a, b) => (Number(b.item.totalPrice) || 0) - (Number(a.item.totalPrice) || 0));
-        actualShippingRepIndex = sortedAll[0].idx;
+          .filter((x) => (Number(x.item.buyerShippingFee) || 0) === 0);
+
+        if (freeItems.length > 0) {
+          freeItems.sort((a, b) => (Number(b.item.totalPrice) || 0) - (Number(a.item.totalPrice) || 0));
+          actualShippingRepIndex = freeItems[0].idx;
+        } else {
+          const sortedAll = groupItems
+            .map((item, idx) => ({ item, idx }))
+            .sort((a, b) => (Number(b.item.totalPrice) || 0) - (Number(a.item.totalPrice) || 0));
+          actualShippingRepIndex = sortedAll[0].idx;
+        }
       }
       
       // Find the first paid shipping item to preserve the customer shipping fee
