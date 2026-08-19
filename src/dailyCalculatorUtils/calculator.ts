@@ -82,7 +82,7 @@ export function getPlatformFeeRate(
 ): number {
   if (platform === 'coupang') {
     // 쌀, 백미, 찹쌀, 현미, 햅쌀 등 양곡류는 6%
-    const isRice = /쌀|햅쌀|고시히카리|경기미|추청|현미|백미|찹쌀|오대쌀|일품쌀|잡곡/.test(productName);
+    const isRice = /쌀|양곡|곡류|햅쌀|고시히카리|경기미|추청|현미|백미|찹쌀|오대쌀|일품쌀|잡곡|흑미|적미|보리|찰보리|수수|기장|서리태|대두|팥|녹두/.test(productName);
     return isRice ? settings.coupangRiceFee : settings.coupangDefaultFee;
   }
   if (platform === 'homepage') {
@@ -140,6 +140,21 @@ export function recalculateOrder(
       feeAmount = Math.max(0, totalPrice - settlementAmount);
       feeRate = totalPrice > 0 ? (feeAmount / totalPrice) * 100 : feeRate;
     } else {
+      feeAmount = Math.round(totalPrice * (feeRate / 100));
+      settlementAmount = totalPrice - feeAmount;
+    }
+  } else if (platform === 'coupang') {
+    // 쿠팡: 카테고리별 수수료 (일반 13%, 쌀/양곡 6%)
+    if (order.settlementAmount && Number(order.settlementAmount) > 0) {
+      settlementAmount = Math.abs(Number(order.settlementAmount));
+      feeAmount = Math.max(0, totalPrice - settlementAmount);
+      feeRate = totalPrice > 0 ? Math.round((feeAmount / totalPrice) * 1000) / 10 : feeRate;
+    } else if (order.feeAmount && Number(order.feeAmount) > 0) {
+      feeAmount = Math.abs(Number(order.feeAmount));
+      settlementAmount = Math.max(0, totalPrice - feeAmount);
+      feeRate = totalPrice > 0 ? Math.round((feeAmount / totalPrice) * 1000) / 10 : feeRate;
+    } else {
+      feeRate = getPlatformFeeRate('coupang', order.productName || '', settings);
       feeAmount = Math.round(totalPrice * (feeRate / 100));
       settlementAmount = totalPrice - feeAmount;
     }
