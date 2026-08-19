@@ -21,7 +21,14 @@ export default function DailyCalculator() {
   const [orders, setOrders] = useState<OrderItem[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_ORDERS_KEY);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const savedSettings = localStorage.getItem(STORAGE_SETTINGS_KEY);
+        const settingsObj = savedSettings ? JSON.parse(savedSettings) : DEFAULT_SETTINGS;
+        const savedCosts = localStorage.getItem(STORAGE_COSTS_KEY);
+        const costsObj = savedCosts ? JSON.parse(savedCosts) : INITIAL_COST_ITEMS;
+        return processAllOrders(parsed, costsObj, settingsObj);
+      }
     } catch (e) {
       console.error(e);
     }

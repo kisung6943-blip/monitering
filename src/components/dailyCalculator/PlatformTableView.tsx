@@ -173,6 +173,12 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
       updated.optionName = editValue.trim();
     }
 
+    if (['unitPrice', 'totalPrice', 'quantity', 'buyerShippingFee'].includes(field)) {
+      delete updated.settlementAmount;
+      delete updated.feeAmount;
+      delete updated.knowledgeShoppingFee;
+    }
+
     const recalculated = recalculateOrder(updated, settings, Boolean(order.isBundleShipping && order.actualShippingCost === 0));
     onUpdateOrder(recalculated);
     setEditingCell(null);
