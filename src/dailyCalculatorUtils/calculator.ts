@@ -351,10 +351,20 @@ export function processAllOrders(
     let buyerShippingRepIndex = -1;
 
     if (isMulti) {
-      // Find the first free shipping item (buyerShippingFee === 0) to be the representative for actual shipping cost
-      const freeIdx = groupItems.findIndex((item) => (Number(item.buyerShippingFee) || 0) === 0);
-      if (freeIdx >= 0) {
-        actualShippingRepIndex = freeIdx;
+      // Find free shipping items (buyerShippingFee === 0) and pick the one with highest totalPrice to be representative
+      const freeItems = groupItems
+        .map((item, idx) => ({ item, idx }))
+        .filter((x) => (Number(x.item.buyerShippingFee) || 0) === 0);
+
+      if (freeItems.length > 0) {
+        freeItems.sort((a, b) => (Number(b.item.totalPrice) || 0) - (Number(a.item.totalPrice) || 0));
+        actualShippingRepIndex = freeItems[0].idx;
+      } else {
+        // If no free shipping items exist, pick highest totalPrice item among paid items
+        const sortedAll = groupItems
+          .map((item, idx) => ({ item, idx }))
+          .sort((a, b) => (Number(b.item.totalPrice) || 0) - (Number(a.item.totalPrice) || 0));
+        actualShippingRepIndex = sortedAll[0].idx;
       }
       
       // Find the first paid shipping item to preserve the customer shipping fee
