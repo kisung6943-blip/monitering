@@ -222,11 +222,18 @@ export function recalculateOrder(
     packagingCost = 0;
   }
 
-  const actualShippingCost = (overrideActualShippingToZero !== undefined ? overrideActualShippingToZero : isBundleSubItem)
-    ? 0
-    : order.actualShippingCost !== undefined
-    ? Number(order.actualShippingCost)
-    : settings.defaultActualShippingCost;
+  let actualShippingCost = 0;
+  if (overrideActualShippingToZero === true || (overrideActualShippingToZero === undefined && isBundleSubItem)) {
+    actualShippingCost = 0;
+  } else if (overrideActualShippingToZero === false) {
+    actualShippingCost = (order.actualShippingCost && Number(order.actualShippingCost) > 0)
+      ? Number(order.actualShippingCost)
+      : settings.defaultActualShippingCost;
+  } else {
+    actualShippingCost = order.actualShippingCost !== undefined
+      ? Number(order.actualShippingCost)
+      : settings.defaultActualShippingCost;
+  }
 
   // Gross profit: 정산가 + 고객배송비 - 원가합계 - 포장비 - 실배송비
   const grossProfit = Math.round(settlementAmount + buyerShippingFee - totalCost - packagingCost - actualShippingCost);
