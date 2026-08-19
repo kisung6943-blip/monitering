@@ -144,20 +144,10 @@ export function recalculateOrder(
       settlementAmount = totalPrice - feeAmount;
     }
   } else if (platform === 'coupang') {
-    // 쿠팡: 카테고리별 수수료 (일반 13%, 쌀/양곡 6%)
-    if (order.settlementAmount && Number(order.settlementAmount) > 0) {
-      settlementAmount = Math.abs(Number(order.settlementAmount));
-      feeAmount = Math.max(0, totalPrice - settlementAmount);
-      feeRate = totalPrice > 0 ? Math.round((feeAmount / totalPrice) * 1000) / 10 : feeRate;
-    } else if (order.feeAmount && Number(order.feeAmount) > 0) {
-      feeAmount = Math.abs(Number(order.feeAmount));
-      settlementAmount = Math.max(0, totalPrice - feeAmount);
-      feeRate = totalPrice > 0 ? Math.round((feeAmount / totalPrice) * 1000) / 10 : feeRate;
-    } else {
-      feeRate = getPlatformFeeRate('coupang', order.productName || '', settings);
-      feeAmount = Math.round(totalPrice * (feeRate / 100));
-      settlementAmount = totalPrice - feeAmount;
-    }
+    // 쿠팡: 카테고리별 수수료 (일반 13%, 쌀/양곡 6%) 및 정산금액 (판매금액 - 수수료)
+    feeRate = getPlatformFeeRate('coupang', order.productName || '', settings);
+    feeAmount = Math.round(totalPrice * (feeRate / 100));
+    settlementAmount = totalPrice - feeAmount;
   } else if (platform === 'smartstore') {
     // 스마트스토어: 결제수수료 + 지식쇼핑수수료
     if (order.settlementAmount && order.settlementAmount > 0) {
