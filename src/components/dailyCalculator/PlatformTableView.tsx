@@ -106,6 +106,7 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
   const sumBuyerShipping = filteredOrders.reduce((sum, o) => sum + o.buyerShippingFee, 0);
   const sumFees = filteredOrders.reduce((sum, o) => sum + o.feeAmount + (o.knowledgeShoppingFee || 0), 0);
   const sumSettlement = filteredOrders.reduce((sum, o) => sum + o.settlementAmount, 0);
+  const sumUnitCost = filteredOrders.reduce((sum, o) => sum + o.unitCost, 0);
   const sumTotalCost = filteredOrders.reduce((sum, o) => sum + o.totalCost, 0);
   const sumPackaging = filteredOrders.reduce((sum, o) => sum + o.packagingCost, 0);
   const sumActualShipping = filteredOrders.reduce((sum, o) => sum + o.actualShippingCost, 0);
@@ -843,7 +844,9 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
                   <td className="py-3 px-3 text-right text-emerald-950 font-black">
                     {formatKRW(sumSettlement)}
                   </td>
-                  <td className="py-3 px-3 text-right text-rose-950">-</td>
+                  <td className="py-3 px-3 text-right text-rose-950">
+                    {formatKRW(sumUnitCost)}
+                  </td>
                   <td className="py-3 px-3 text-right text-rose-950 font-black">
                     {formatKRW(sumTotalCost)}
                   </td>
