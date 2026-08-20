@@ -222,7 +222,10 @@ export function recalculateOrder(
   const totalCost = unitCost * quantity;
 
   // Packaging & Actual Shipping
-  let packagingCost = order.packagingCost !== undefined ? Number(order.packagingCost) : settings.defaultPackagingCost;
+  const defaultPkgCost = (order.productName && typeof order.productName === 'string' && (order.productName.includes('쌀') || order.productName.includes('양곡')))
+    ? 1000
+    : settings.defaultPackagingCost;
+  let packagingCost = order.packagingCost !== undefined ? Number(order.packagingCost) : defaultPkgCost;
   if (isBundleSubItem) {
     packagingCost = 0;
   }
