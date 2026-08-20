@@ -33,10 +33,25 @@ export function findMatchingCost(
     return !o || o === '기본' || o === '선택없음' || o === '단품' || o === '일반' || o === 'default';
   };
 
+  // Helper to check if there is a number mismatch
+  // e.g. one has "1" and the other has "2" (and neither has the other's number)
+  const hasNumberMismatch = (strA: string, strB: string): boolean => {
+    const numsA = strA.match(/\d+/g) || [];
+    const numsB = strB.match(/\d+/g) || [];
+    if (numsA.length === 0 || numsB.length === 0) return false;
+    const common = numsA.filter(n => numsB.includes(n));
+    return common.length === 0;
+  };
+
+  // Combine product and option for checking mismatch in the whole text
+  const orderCombined = `${normProduct} ${normOption}`;
+
   // 1. Exact match (Product + Option)
   let found = costItems.find((item) => {
     const itemP = normalizeText(item.productName);
     const itemO = normalizeText(item.optionName);
+    const costCombined = `${itemP} ${itemO}`;
+    if (hasNumberMismatch(orderCombined, costCombined)) return false;
     return itemP === normProduct && (itemO === normOption || isDefaultOption(item.optionName) || isDefaultOption(optionName));
   });
 
@@ -51,6 +66,8 @@ export function findMatchingCost(
     const pMatch = normProduct.includes(itemP) || itemP.includes(normProduct);
     const itemO = normalizeText(item.optionName);
     const oMatch = isDefaultOption(item.optionName) || isDefaultOption(optionName) || normOption.includes(itemO) || itemO.includes(normOption);
+    const costCombined = `${itemP} ${itemO}`;
+    if (hasNumberMismatch(orderCombined, costCombined)) return false;
     return pMatch && oMatch;
   });
 
@@ -62,6 +79,8 @@ export function findMatchingCost(
   found = costItems.find((item) => {
     const itemP = normalizeText(item.productName);
     if (!itemP) return false;
+    const costCombined = `${itemP} ${normalizeText(item.optionName)}`;
+    if (hasNumberMismatch(orderCombined, costCombined)) return false;
     return (normProduct.includes(itemP) || itemP.includes(normProduct)) && item.cost > 0;
   });
 
