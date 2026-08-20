@@ -22,6 +22,7 @@ import { PLATFORMS } from '../../dailyCalculatorData/initialData';
 import { CostItem, OrderItem, PlatformType, SettlementSettings } from '../../dailyCalculatorTypes';
 import { formatKRW, recalculateOrder } from '../../dailyCalculatorUtils/calculator';
 import { exportOrdersToExcel } from '../../dailyCalculatorUtils/excelParser';
+import Inko from 'inko/index.js';
 
 interface PlatformTableViewProps {
   platform: PlatformType;
@@ -58,6 +59,16 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
 
   const [isEditingAdSpend, setIsEditingAdSpend] = useState(false);
   const [adSpendInputText, setAdSpendInputText] = useState('');
+
+  const [autoKo, setAutoKo] = useState(true);
+
+  const handleKoConvert = (val: string): string => {
+    if (autoKo) {
+      const inko = new Inko();
+      return inko.en2ko(val);
+    }
+    return val;
+  };
 
   const platformConfig = PLATFORMS[platform] || PLATFORMS.smartstore;
 
@@ -337,16 +348,30 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
 
       {/* Search & Filter Bar */}
       <div className="flex items-center justify-between gap-3">
-        <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-          <input
-            id="input-search-table"
-            type="text"
-            placeholder="상품명, 옵션명, 수취인, 주문번호 검색..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white border border-slate-300 rounded-lg pl-9 pr-3 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder-slate-400 font-medium"
-          />
+        <div className="relative flex-1 max-w-md flex items-center">
+          <div className="relative w-full">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              id="input-search-table"
+              type="text"
+              placeholder="상품명, 옵션명, 수취인, 주문번호 검색..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(handleKoConvert(e.target.value))}
+              className="w-full bg-white border border-slate-300 rounded-lg pl-9 pr-20 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder-slate-400 font-medium"
+            />
+            <button
+              type="button"
+              onClick={() => setAutoKo(!autoKo)}
+              className={`absolute right-1.5 top-1 px-1.5 py-1 rounded text-[10px] font-bold transition-all border ${
+                autoKo 
+                  ? 'bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100' 
+                  : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200'
+              }`}
+              title="영타를 한글로 자동 변환합니다."
+            >
+              {autoKo ? '한글 우선' : '영문 입력'}
+            </button>
+          </div>
         </div>
         <div className="text-xs text-slate-500 font-medium">
           셀(원가, 수량, 판매가 등)을 클릭하면 즉시 수정 및 자동 재계산됩니다.
@@ -460,7 +485,7 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
                           <input
                             type="text"
                             value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
+                            onChange={(e) => setEditValue(handleKoConvert(e.target.value))}
                             onBlur={() => handleSaveEdit(ord)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(ord)}
                             onFocus={(e) => e.target.select()}
@@ -506,7 +531,7 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
                           <input
                             type="text"
                             value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
+                            onChange={(e) => setEditValue(handleKoConvert(e.target.value))}
                             onBlur={() => handleSaveEdit(ord)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(ord)}
                             onFocus={(e) => e.target.select()}
@@ -569,7 +594,7 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
                           <input
                             type="text"
                             value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
+                            onChange={(e) => setEditValue(handleKoConvert(e.target.value))}
                             onBlur={() => handleSaveEdit(ord)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(ord)}
                             onFocus={(e) => e.target.select()}

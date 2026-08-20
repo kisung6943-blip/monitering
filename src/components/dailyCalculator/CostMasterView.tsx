@@ -18,6 +18,7 @@ import {
 import { CostItem, OrderItem } from '../../dailyCalculatorTypes';
 import { formatKRW } from '../../dailyCalculatorUtils/calculator';
 import { exportCostMasterToExcel, parseCostMasterExcel } from '../../dailyCalculatorUtils/excelParser';
+import Inko from 'inko/index.js';
 
 interface CostMasterViewProps {
   costItems: CostItem[];
@@ -43,6 +44,16 @@ export const CostMasterView: React.FC<CostMasterViewProps> = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editCostValue, setEditCostValue] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [autoKo, setAutoKo] = useState(true);
+
+  const handleKoConvert = (val: string): string => {
+    if (autoKo) {
+      const inko = new Inko();
+      return inko.en2ko(val);
+    }
+    return val;
+  };
 
   // Bulk Unmatched Modal State
   const [showUnmatchedModal, setShowUnmatchedModal] = useState(false);
@@ -359,9 +370,21 @@ export const CostMasterView: React.FC<CostMasterViewProps> = ({
               type="text"
               placeholder="상품명, 옵션명, 공급처, 메모 검색..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-3 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all font-medium"
+              onChange={(e) => setSearchTerm(handleKoConvert(e.target.value))}
+              className="w-full bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-20 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all font-medium"
             />
+            <button
+              type="button"
+              onClick={() => setAutoKo(!autoKo)}
+              className={`absolute right-1.5 top-1 px-1.5 py-1 rounded text-[10px] font-bold transition-all border ${
+                autoKo 
+                  ? 'bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100' 
+                  : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200'
+              }`}
+              title="영타를 한글로 자동 변환합니다."
+            >
+              {autoKo ? '한글 우선' : '영문 입력'}
+            </button>
           </div>
         </div>
 
@@ -519,7 +542,7 @@ export const CostMasterView: React.FC<CostMasterViewProps> = ({
                   required
                   placeholder="예: 휘슬러 압력밥솥 호환용 고무패킹"
                   value={newProductName}
-                  onChange={(e) => setNewProductName(e.target.value)}
+                  onChange={(e) => setNewProductName(handleKoConvert(e.target.value))}
                   className="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
@@ -533,7 +556,7 @@ export const CostMasterView: React.FC<CostMasterViewProps> = ({
                     type="text"
                     placeholder="예: 1개 22cm (단품일 경우 기본)"
                     value={newOptionName}
-                    onChange={(e) => setNewOptionName(e.target.value)}
+                    onChange={(e) => setNewOptionName(handleKoConvert(e.target.value))}
                     className="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
@@ -562,7 +585,7 @@ export const CostMasterView: React.FC<CostMasterViewProps> = ({
                     type="text"
                     placeholder="예: 주방용품/부품"
                     value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value)}
+                    onChange={(e) => setNewCategory(handleKoConvert(e.target.value))}
                     className="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
@@ -575,7 +598,7 @@ export const CostMasterView: React.FC<CostMasterViewProps> = ({
                     type="text"
                     placeholder="예: 국산제조원"
                     value={newSupplier}
-                    onChange={(e) => setNewSupplier(e.target.value)}
+                    onChange={(e) => setNewSupplier(handleKoConvert(e.target.value))}
                     className="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
@@ -589,7 +612,7 @@ export const CostMasterView: React.FC<CostMasterViewProps> = ({
                   type="text"
                   placeholder="특이사항, 단가 변경 이력 등"
                   value={newMemo}
-                  onChange={(e) => setNewMemo(e.target.value)}
+                  onChange={(e) => setNewMemo(handleKoConvert(e.target.value))}
                   className="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
