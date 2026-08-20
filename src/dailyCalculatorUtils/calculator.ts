@@ -201,7 +201,7 @@ export function recalculateOrder(
       
       if (order.feeAmount !== undefined) {
         const explicitFee = Math.abs(Number(order.feeAmount));
-        feeAmount = Math.max(explicitFee, computedFee);
+        feeAmount = explicitFee;
       } else {
         feeAmount = computedFee;
       }
