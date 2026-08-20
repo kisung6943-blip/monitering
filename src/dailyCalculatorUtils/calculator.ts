@@ -400,7 +400,7 @@ export function processAllOrders(
     }
 
     groupItems.forEach((item, index) => {
-      const isSubItem = isMulti && index > 0;
+      const isSubItem = isMulti && index !== actualShippingRepIndex;
       
       let overrideActualShippingToZero = undefined;
       let overrideBuyerShippingToZero = undefined;
