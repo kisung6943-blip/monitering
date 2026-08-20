@@ -223,7 +223,7 @@ export function recalculateOrder(
 
   // Packaging & Actual Shipping
   let packagingCost = order.packagingCost !== undefined ? Number(order.packagingCost) : settings.defaultPackagingCost;
-  if (isBundleSubItem && settings.bundleOnlyFirstPackageCost) {
+  if (isBundleSubItem) {
     packagingCost = 0;
   }
 
