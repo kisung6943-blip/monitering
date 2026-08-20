@@ -37,22 +37,24 @@ export const ExcelUploadModal: React.FC<ExcelUploadModalProps> = ({
   } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [appendMode, setAppendMode] = useState(true);
+  const [targetDate, setTargetDate] = useState<string>('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
 
-  const handleFileChange = async (incomingFile: File) => {
-    setFile(incomingFile);
+  const reprocess = async (incomingFile: File, platformOverride: PlatformType | 'auto', dateOverride: string) => {
     setErrorMsg(null);
     setIsProcessing(true);
-
     try {
-      const forced = selectedPlatform === 'auto' ? undefined : selectedPlatform;
+      const forced = platformOverride === 'auto' ? undefined : platformOverride;
       const res = await parseExcelOrders(incomingFile, forced, settings);
       
-      // Auto-match cost items & bundle delivery
-      const processed = processAllOrders(res.orders, costItems, settings);
+      const adjustedOrders = dateOverride
+        ? res.orders.map(o => ({ ...o, orderDate: dateOverride }))
+        : res.orders;
+
+      const processed = processAllOrders(adjustedOrders, costItems, settings);
       setParsedPreview({
         orders: processed,
         detectedPlatform: res.detectedPlatform,
@@ -63,6 +65,25 @@ export const ExcelUploadModal: React.FC<ExcelUploadModalProps> = ({
       setParsedPreview(null);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleFileChange = async (incomingFile: File) => {
+    setFile(incomingFile);
+    await reprocess(incomingFile, selectedPlatform, targetDate);
+  };
+
+  const handlePlatformChange = async (p: PlatformType | 'auto') => {
+    setSelectedPlatform(p);
+    if (file) {
+      await reprocess(file, p, targetDate);
+    }
+  };
+
+  const handleDateChange = async (d: string) => {
+    setTargetDate(d);
+    if (file) {
+      await reprocess(file, selectedPlatform, d);
     }
   };
 
@@ -103,7 +124,7 @@ export const ExcelUploadModal: React.FC<ExcelUploadModalProps> = ({
             <div className="grid grid-cols-4 gap-2">
               <button
                 type="button"
-                onClick={() => setSelectedPlatform('auto')}
+                onClick={() => handlePlatformChange('auto')}
                 className={`p-2 rounded-lg border text-center font-bold transition-all cursor-pointer ${
                   selectedPlatform === 'auto'
                     ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
@@ -117,7 +138,7 @@ export const ExcelUploadModal: React.FC<ExcelUploadModalProps> = ({
                 <button
                   key={p.id}
                   type="button"
-                  onClick={() => setSelectedPlatform(p.id)}
+                  onClick={() => handlePlatformChange(p.id)}
                   className={`p-2 rounded-lg border text-center font-semibold transition-all cursor-pointer ${
                     selectedPlatform === p.id
                       ? `${p.bgColor} ${p.textColor} ${p.borderColor} font-bold shadow-xs`
@@ -128,6 +149,20 @@ export const ExcelUploadModal: React.FC<ExcelUploadModalProps> = ({
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Target Date Selector */}
+          <div>
+            <label className="block font-bold text-slate-800 mb-1.5 flex items-center justify-between">
+              <span>업로드 주문 일자 강제 지정 (선택사항):</span>
+              <span className="text-[10px] text-slate-400 font-normal">※ 엑셀 파일 내의 날짜 대신 특정 과거 날짜로 일괄 등록하고 싶을 때 선택하세요.</span>
+            </label>
+            <input
+              type="date"
+              value={targetDate}
+              onChange={(e) => handleDateChange(e.target.value)}
+              className="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium cursor-pointer"
+            />
           </div>
 
           {/* Dropzone */}
