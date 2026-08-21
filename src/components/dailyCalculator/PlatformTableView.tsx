@@ -24,6 +24,8 @@ import { formatKRW, recalculateOrder } from '../../dailyCalculatorUtils/calculat
 import { exportOrdersToExcel } from '../../dailyCalculatorUtils/excelParser';
 import Inko from 'inko/index.js';
 
+const inko = new Inko();
+
 interface PlatformTableViewProps {
   platform: PlatformType;
   orders: OrderItem[];
@@ -60,15 +62,7 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
   const [isEditingAdSpend, setIsEditingAdSpend] = useState(false);
   const [adSpendInputText, setAdSpendInputText] = useState('');
 
-  const [autoKo, setAutoKo] = useState(true);
-
-  const handleKoConvert = (val: string): string => {
-    if (autoKo) {
-      const inko = new Inko();
-      return inko.en2ko(val);
-    }
-    return val;
-  };
+  // Removed autoKo state and handleKoConvert helper to prevent IME break and disassembled Jamo (ㅇㅐㄴㅌㅣㄱ)
 
   const platformConfig = PLATFORMS[platform] || PLATFORMS.smartstore;
 
@@ -78,11 +72,21 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
   const filteredOrders = dateFiltered.filter((o) => {
     if (!searchTerm.trim()) return true;
     const term = searchTerm.toLowerCase();
+    const convertedTerm = inko.en2ko(searchTerm).toLowerCase();
+    const assembledTerm = inko.en2ko(inko.ko2en(searchTerm)).toLowerCase();
     return (
       o.productName.toLowerCase().includes(term) ||
+      o.productName.toLowerCase().includes(convertedTerm) ||
+      o.productName.toLowerCase().includes(assembledTerm) ||
       o.optionName.toLowerCase().includes(term) ||
+      o.optionName.toLowerCase().includes(convertedTerm) ||
+      o.optionName.toLowerCase().includes(assembledTerm) ||
       o.recipient.toLowerCase().includes(term) ||
-      o.orderNumber.toLowerCase().includes(term)
+      o.recipient.toLowerCase().includes(convertedTerm) ||
+      o.recipient.toLowerCase().includes(assembledTerm) ||
+      o.orderNumber.toLowerCase().includes(term) ||
+      o.orderNumber.toLowerCase().includes(convertedTerm) ||
+      o.orderNumber.toLowerCase().includes(assembledTerm)
     );
   });
 
@@ -356,20 +360,16 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
               type="text"
               placeholder="상품명, 옵션명, 수취인, 주문번호 검색..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(handleKoConvert(e.target.value))}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-white border border-slate-300 rounded-lg pl-9 pr-20 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder-slate-400 font-medium"
             />
             <button
               type="button"
-              onClick={() => setAutoKo(!autoKo)}
-              className={`absolute right-1.5 top-1 px-1.5 py-1 rounded text-[10px] font-bold transition-all border ${
-                autoKo 
-                  ? 'bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100' 
-                  : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200'
-              }`}
-              title="영타를 한글로 자동 변환합니다."
+              onClick={() => setSearchTerm(inko.en2ko(inko.ko2en(searchTerm)))}
+              className="absolute right-1.5 top-1 px-1.5 py-1 rounded text-[10px] font-bold transition-all border bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200 cursor-pointer"
+              title="현재 입력된 영타나 자모 분리 텍스트를 완성형 한글로 변환합니다."
             >
-              {autoKo ? '한글 우선' : '영문 입력'}
+              한글 변환
             </button>
           </div>
         </div>
@@ -485,7 +485,7 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
                           <input
                             type="text"
                             value={editValue}
-                            onChange={(e) => setEditValue(handleKoConvert(e.target.value))}
+                            onChange={(e) => setEditValue(e.target.value)}
                             onBlur={() => handleSaveEdit(ord)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(ord)}
                             onFocus={(e) => e.target.select()}
@@ -531,7 +531,7 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
                           <input
                             type="text"
                             value={editValue}
-                            onChange={(e) => setEditValue(handleKoConvert(e.target.value))}
+                            onChange={(e) => setEditValue(e.target.value)}
                             onBlur={() => handleSaveEdit(ord)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(ord)}
                             onFocus={(e) => e.target.select()}
@@ -594,7 +594,7 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
                           <input
                             type="text"
                             value={editValue}
-                            onChange={(e) => setEditValue(handleKoConvert(e.target.value))}
+                            onChange={(e) => setEditValue(e.target.value)}
                             onBlur={() => handleSaveEdit(ord)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(ord)}
                             onFocus={(e) => e.target.select()}
