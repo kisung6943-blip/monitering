@@ -206,6 +206,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
   const [newProductName, setNewProductName] = useState<string>("");
   const [newProductNaverUrl, setNewProductNaverUrl] = useState<string>("");
   const [newProductCoupangUrl, setNewProductCoupangUrl] = useState<string>("");
+  const [editingNaverUrlProductId, setEditingNaverUrlProductId] = useState<string | null>(null);
   
   // Toast notifications
   const [toastMessage, setToastMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
@@ -1280,16 +1281,70 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                                 title="클릭해서 품목 이름 수정"
                               />
                               <div className="flex gap-2 mt-0.5 transition-opacity items-center">
-                                {item.naverUrl && (
-                                  <a 
-                                    href={item.naverUrl} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer" 
+                                {editingNaverUrlProductId === item.id ? (
+                                  <input
+                                    type="text"
+                                    defaultValue={item.naverUrl || ""}
+                                    placeholder="네이버 쇼핑 URL 입력"
                                     onClick={(e) => e.stopPropagation()}
-                                    className="text-[10px] text-amber-600 hover:underline flex items-center gap-0.5"
-                                  >
-                                    네이버 쇼핑 <ExternalLink size={8} />
-                                  </a>
+                                    onBlur={(e) => {
+                                      const newUrl = e.target.value.trim();
+                                      if (newUrl !== (item.naverUrl || "")) {
+                                        const updatedProducts = products.map(p => 
+                                          p.id === item.id ? { ...p, naverUrl: newUrl || undefined } : p
+                                        );
+                                        saveToLocalStorage(updatedProducts, priceLogs, true);
+                                        showToast("네이버 쇼핑 링크가 수정되었습니다.");
+                                      }
+                                      setEditingNaverUrlProductId(null);
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        e.currentTarget.blur();
+                                      } else if (e.key === 'Escape') {
+                                        setEditingNaverUrlProductId(null);
+                                      }
+                                    }}
+                                    className="text-[10px] px-1 py-0.5 rounded border border-amber-400 outline-none w-48 text-slate-800 font-normal"
+                                    autoFocus
+                                  />
+                                ) : (
+                                  <>
+                                    {item.naverUrl ? (
+                                      <div className="flex items-center gap-1">
+                                        <a 
+                                          href={item.naverUrl} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer" 
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="text-[10px] text-amber-600 hover:underline flex items-center gap-0.5"
+                                        >
+                                          네이버 쇼핑 <ExternalLink size={8} />
+                                        </a>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setEditingNaverUrlProductId(item.id);
+                                          }}
+                                          className="text-slate-400 hover:text-amber-600 p-0.5"
+                                          title="네이버 쇼핑 링크 수정"
+                                        >
+                                          <Edit2 size={8} />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setEditingNaverUrlProductId(item.id);
+                                        }}
+                                        className="text-[10px] text-slate-400 hover:text-amber-600 flex items-center gap-0.5"
+                                        title="네이버 쇼핑 링크 등록"
+                                      >
+                                        네이버 쇼핑 등록 <Plus size={8} />
+                                      </button>
+                                    )}
+                                  </>
                                 )}
                                 {item.coupangUrl && (
                                   <a 
