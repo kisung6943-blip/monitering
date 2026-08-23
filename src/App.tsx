@@ -336,11 +336,9 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
       const filteredInitial = INITIAL_PRODUCTS.filter(p => p.id !== 'sort-order-config' && !isProductDeleted(p.id, p.name));
 
       let finalProducts: Product[] = [];
-      if (dbProds.length > 0) {
-        // Supabase cloud DB is the strict source of truth
-        finalProducts = dbProds;
-      } else if (localProds.length > 0) {
-        finalProducts = localProds;
+      if (dbProds.length > 0 || localProds.length > 0) {
+        // Merge Supabase and local storage products (local changes override stale db values)
+        finalProducts = mergeProducts(dbProds, localProds);
       } else {
         finalProducts = filteredInitial;
       }
@@ -600,7 +598,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
       }
       return p;
     });
-    saveToLocalStorage(updatedProducts, priceLogs);
+    saveToLocalStorage(updatedProducts, priceLogs, true);
   };
 
   const handleKeywordVolumeChange = (productId: string, index: number, value: string) => {
@@ -612,7 +610,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
       }
       return p;
     });
-    saveToLocalStorage(updatedProducts, priceLogs);
+    saveToLocalStorage(updatedProducts, priceLogs, true);
   };
 
   const handleKeywordRankChange = (productId: string, index: number, value: string) => {
@@ -936,7 +934,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
           if (parsed.products && parsed.priceLogs) {
             const mergedProducts = mergeProducts(products, parsed.products);
             const mergedLogs = mergeLogs(priceLogs, parsed.priceLogs);
-            saveToLocalStorage(mergedProducts, mergedLogs);
+            saveToLocalStorage(mergedProducts, mergedLogs, true);
             
             const prodWithKw = mergedProducts.find(p => p.keywords && p.keywords.some(k => k));
             if (prodWithKw && (!selectedProduct?.keywords || !selectedProduct.keywords.some(k => k))) {
@@ -2353,7 +2351,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                                 const newName = e.target.value.trim();
                                 if (newName && newName !== p.name) {
                                   const updatedProducts = products.map(prod => prod.id === p.id ? { ...prod, name: newName } : prod);
-                                  saveToLocalStorage(updatedProducts, priceLogs);
+                                  saveToLocalStorage(updatedProducts, priceLogs, true);
                                   showToast(`품목 이름이 변경되었습니다.`);
                                 } else if (!newName) {
                                   e.target.value = p.name;
