@@ -39,7 +39,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const filteredOrders = selectedDate === 'all' ? orders : orders.filter((o) => o.orderDate === selectedDate);
 
   // Compute Total Metrics
-  const totalSales = filteredOrders.reduce((sum, o) => sum + (o.totalPrice + o.buyerShippingFee), 0);
+  const totalSales = filteredOrders.reduce((sum, o) => sum + (o.totalPrice + (o.platform === 'elevenst' ? 0 : o.buyerShippingFee)), 0);
   const totalProductSales = filteredOrders.reduce((sum, o) => sum + o.totalPrice, 0);
   const totalBuyerShipping = filteredOrders.reduce((sum, o) => sum + o.buyerShippingFee, 0);
   const totalSettlement = filteredOrders.reduce((sum, o) => sum + o.settlementAmount, 0);
@@ -86,7 +86,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   // Platform Breakdown
   const platformStats = Object.values(PLATFORMS).map((p) => {
     const pOrders = filteredOrders.filter((o) => o.platform === p.id);
-    const pSales = pOrders.reduce((sum, o) => sum + (o.totalPrice + o.buyerShippingFee), 0);
+    const pSales = pOrders.reduce((sum, o) => sum + (o.totalPrice + (p.id === 'elevenst' ? 0 : o.buyerShippingFee)), 0);
     const pSettlement = pOrders.reduce((sum, o) => sum + o.settlementAmount, 0);
     const pCost = pOrders.reduce((sum, o) => sum + o.totalCost, 0);
     const pNetProfit = pOrders.reduce((sum, o) => sum + o.netProfit, 0);
@@ -128,7 +128,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const dates = Array.from(new Set(orders.map((o) => o.orderDate))) as string[];
   const dailySummaries: DailySummary[] = dates.sort().reverse().map((date) => {
     const dOrders = orders.filter((o) => o.orderDate === date);
-    const dSales = dOrders.reduce((sum, o) => sum + (o.totalPrice + o.buyerShippingFee), 0);
+    const dSales = dOrders.reduce((sum, o) => sum + (o.totalPrice + (o.platform === 'elevenst' ? 0 : o.buyerShippingFee)), 0);
     const dProductSales = dOrders.reduce((sum, o) => sum + o.totalPrice, 0);
     const dShipping = dOrders.reduce((sum, o) => sum + o.buyerShippingFee, 0);
     const dFees = dOrders.reduce((sum, o) => sum + o.feeAmount + (o.knowledgeShoppingFee || 0), 0);

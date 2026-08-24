@@ -116,7 +116,7 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
   }, [currentAdSpend, isEditingAdSpend]);
 
   // Calculate Column Totals
-  const sumTotalSales = filteredOrders.reduce((sum, o) => sum + (o.totalPrice + o.buyerShippingFee), 0);
+  const sumTotalSales = filteredOrders.reduce((sum, o) => sum + (o.totalPrice + (o.platform === 'elevenst' ? 0 : o.buyerShippingFee)), 0);
   const sumProductSales = filteredOrders.reduce((sum, o) => sum + o.totalPrice, 0);
   const sumBuyerShipping = filteredOrders.reduce((sum, o) => sum + o.buyerShippingFee, 0);
   const sumFees = filteredOrders.reduce((sum, o) => sum + o.feeAmount + (o.knowledgeShoppingFee || 0), 0);
@@ -159,32 +159,55 @@ export const PlatformTableView: React.FC<PlatformTableViewProps> = ({
     } else if (field === 'unitPrice') {
       updated.unitPrice = numVal;
       updated.totalPrice = numVal * (order.quantity || 1);
+      delete updated.settlementAmount;
+      delete updated.feeAmount;
+      delete updated.knowledgeShoppingFee;
+      delete updated.feeRate;
     } else if (field === 'totalPrice') {
       updated.totalPrice = numVal;
       if (order.quantity > 0) {
         updated.unitPrice = Math.round(numVal / order.quantity);
       }
+      delete updated.settlementAmount;
+      delete updated.feeAmount;
+      delete updated.knowledgeShoppingFee;
+      delete updated.feeRate;
     } else if (field === 'quantity') {
       const q = Math.max(1, numVal || 1);
       updated.quantity = q;
       updated.totalPrice = (order.unitPrice || 0) * q;
+      delete updated.settlementAmount;
+      delete updated.feeAmount;
+      delete updated.knowledgeShoppingFee;
+      delete updated.feeRate;
     } else if (field === 'buyerShippingFee') {
       updated.buyerShippingFee = numVal;
       updated.isShippingFree = numVal === 0;
+      delete updated.settlementAmount;
+      delete updated.feeAmount;
+      delete updated.knowledgeShoppingFee;
+      delete updated.feeRate;
     } else if (field === 'actualShippingCost') {
       updated.actualShippingCost = numVal;
     } else if (field === 'packagingCost') {
       updated.packagingCost = numVal;
     } else if (field === 'feeAmount') {
       updated.feeAmount = numVal;
+      delete updated.settlementAmount;
+      delete updated.feeRate;
     } else if (field === 'knowledgeShoppingFee') {
       updated.knowledgeShoppingFee = numVal;
+      delete updated.settlementAmount;
     } else if (field === 'settlementAmount') {
       updated.settlementAmount = numVal;
+      delete updated.feeAmount;
+      delete updated.knowledgeShoppingFee;
+      delete updated.feeRate;
     } else if (field === 'recipient') {
       updated.recipient = editValue.trim();
     } else if (field === 'productName') {
       updated.productName = editValue.trim();
+      delete updated.feeRate;
     } else if (field === 'optionName') {
       updated.optionName = editValue.trim();
     }

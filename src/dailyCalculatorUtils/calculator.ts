@@ -36,8 +36,8 @@ export function findMatchingCost(
   // Helper to check if there is a number mismatch
   // e.g. one has "1" and the other has "2" (and neither has the other's number)
   const hasNumberMismatch = (strA: string, strB: string): boolean => {
-    const numsA = strA.match(/\d+/g) || [];
-    const numsB = strB.match(/\d+/g) || [];
+    const numsA: string[] = strA.match(/\d+/g) || [];
+    const numsB: string[] = strB.match(/\d+/g) || [];
     if (numsA.length === 0 || numsB.length === 0) return false;
     const common = numsA.filter(n => numsB.includes(n));
     return common.length === 0;
@@ -229,10 +229,10 @@ export function recalculateOrder(
       settlementAmount = rawSettlement;
     } else if (order.feeAmount !== undefined) {
       feeAmount = Math.abs(Number(order.feeAmount));
-      settlementAmount = totalPrice - feeAmount;
+      settlementAmount = totalPrice - feeAmount + (platform === 'elevenst' ? buyerShippingFee : 0);
     } else {
       feeAmount = Math.round(totalPrice * (feeRate / 100) * 10) / 10;
-      settlementAmount = Math.round(totalPrice - feeAmount);
+      settlementAmount = Math.round(totalPrice - feeAmount + (platform === 'elevenst' ? buyerShippingFee : 0));
     }
   }
 
@@ -263,7 +263,10 @@ export function recalculateOrder(
   }
 
   // Gross profit: 정산가 + 고객배송비 - 원가합계 - 포장비 - 실배송비
-  const grossProfit = Math.round(settlementAmount + buyerShippingFee - totalCost - packagingCost - actualShippingCost);
+  // 11번가(elevenst)의 경우 엑셀 정산가에 배송비가 이미 포함되어 있으므로 고객배송비(buyerShippingFee)를 가산하지 않음
+  const grossProfit = platform === 'elevenst'
+    ? Math.round(settlementAmount - totalCost - packagingCost - actualShippingCost)
+    : Math.round(settlementAmount + buyerShippingFee - totalCost - packagingCost - actualShippingCost);
 
   // VAT (부가세)
   let vatAmount = 0;
@@ -282,14 +285,16 @@ export function recalculateOrder(
   }
 
   // Income Tax (종합소득세 10% or user setting)
-  const incomeTaxRate = settings.defaultIncomeTaxRate / 100;
+  // 11번가(elevenst)의 경우 엑셀 수식(13%)에 맞춤
+  const incomeTaxRate = platform === 'elevenst' ? 0.13 : settings.defaultIncomeTaxRate / 100;
   const incomeTax = Math.round(vatDeductedProfit * incomeTaxRate * 100) / 100;
 
   // Net Profit (최종 순수익)
   const netProfit = Math.round(vatDeductedProfit - incomeTax);
 
   // Margin Rate (%) = (순수익 / (총판매금액 + 고객배송비)) * 100
-  const totalRevenue = totalPrice + buyerShippingFee;
+  // 11번가(elevenst)의 경우 고객배송비를 제외한 총판매금액(totalPrice) 기준으로 마진율 계산
+  const totalRevenue = platform === 'elevenst' ? totalPrice : totalPrice + buyerShippingFee;
   const marginRate = totalRevenue > 0 ? Math.round((netProfit / totalRevenue) * 100) : 0;
 
   return {
