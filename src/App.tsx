@@ -3,7 +3,7 @@ import {
   Search, Plus, Trash2, Edit2, Sparkles, LineChart as ChartIcon, 
   Calendar, ArrowUpDown, TrendingDown, TrendingUp, CheckCircle, 
   ExternalLink, FileSpreadsheet, Download, Upload, Info, AlertTriangle, 
-  RefreshCw, Layers, Check, X, HelpCircle, ChevronUp, ChevronDown
+  RefreshCw, Layers, Check, X, HelpCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
@@ -19,36 +19,9 @@ import CoupangCouponManager from "./components/CoupangCouponManager";
 import { CoupangEndLohasCalc } from "./components/CoupangEndLohas/CoupangEndLohasCalc";
 import { callGeminiGenerateContent } from "./utils/geminiApi";
 import DailyCalculator from "./components/dailyCalculator/DailyCalculator";
-import { 
-  getDeletedProductIds, 
-  getDeletedProductNames, 
-  saveDeletedProduct, 
-  unblacklistProduct, 
-  isProductDeleted 
-} from "./utils/productBlacklist";
-
-const getSavedMemos = (): Record<string, string> => {
-  try {
-    const saved = localStorage.getItem("price_monitor_memos");
-    if (saved) return JSON.parse(saved);
-  } catch (e) {}
-  return {};
-};
-
-const saveMemoToLocalStorage = (productId: string, date: string, memo: string) => {
-  try {
-    const memos = getSavedMemos();
-    const key = `${productId}_${date}`;
-    if (memo && memo.trim()) {
-      memos[key] = memo;
-    } else {
-      delete memos[key];
-    }
-    localStorage.setItem("price_monitor_memos", JSON.stringify(memos));
-  } catch (e) {}
-};
 
 export default function App() {
+  console.log("App component: Rendering initialized");
   // State for products and price logs
   const [products, setProducts] = useState<Product[]>([]);
   const [priceLogs, setPriceLogs] = useState<PriceLog[]>([]);
@@ -206,7 +179,6 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
   const [newProductName, setNewProductName] = useState<string>("");
   const [newProductNaverUrl, setNewProductNaverUrl] = useState<string>("");
   const [newProductCoupangUrl, setNewProductCoupangUrl] = useState<string>("");
-  const [editingNaverUrlProductId, setEditingNaverUrlProductId] = useState<string | null>(null);
   
   // Toast notifications
   const [toastMessage, setToastMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
@@ -215,8 +187,6 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
   const mergeProducts = (dProds: Product[], lProds: Product[]): Product[] => {
     const map = new Map<string, Product>();
     const addOrMerge = (p: Product) => {
-      if (!p || !p.id) return;
-      if (isProductDeleted(p.id, p.name)) return;
       if (!map.has(p.id)) {
         map.set(p.id, { ...p });
         return;
@@ -237,23 +207,16 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
     };
     dProds.forEach(addOrMerge);
     lProds.forEach(addOrMerge);
-    return Array.from(map.values()).filter(p => !isProductDeleted(p.id, p.name));
+    return Array.from(map.values());
   };
 
   // Helper to merge price logs without losing data
   const mergeLogs = (dLogs: PriceLog[], lLogs: PriceLog[]): PriceLog[] => {
     const map = new Map<string, PriceLog>();
-    const savedMemos = getSavedMemos();
-
     const addOrMerge = (log: PriceLog) => {
       const key = `${log.productId}_${log.date}`;
-      const memoFromStorage = savedMemos[key] || "";
-
       if (!map.has(key)) {
-        map.set(key, { 
-          ...log,
-          memo: log.memo || memoFromStorage || ""
-        });
+        map.set(key, { ...log });
         return;
       }
       const existing = map.get(key)!;
@@ -263,12 +226,6 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
       const mergedCoupRanks = Array.from({ length: 6 }).map((_, i) =>
         log.coupangKeywordRanks?.[i] || existing.coupangKeywordRanks?.[i] || ""
       );
-      const mergedMemo = (log.memo && log.memo.trim() !== "")
-        ? log.memo
-        : (existing.memo && existing.memo.trim() !== "")
-        ? existing.memo
-        : memoFromStorage;
-
       map.set(key, {
         id: existing.id || log.id,
         date: log.date || existing.date,
@@ -283,7 +240,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
         difference: log.difference || existing.difference || 0,
         keywordRanks: mergedNavRanks,
         coupangKeywordRanks: mergedCoupRanks,
-        memo: mergedMemo,
+        memo: log.memo || existing.memo || "",
       });
     };
     dLogs.forEach(addOrMerge);
@@ -297,9 +254,12 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
       let dbProds: Product[] = [];
       let dbLogs: PriceLog[] = [];
 
+      console.log("initData: Fetching from Supabase...");
       try {
         const { data: prodData } = await supabase.from("products").select("*");
+        console.log("initData: Fetched products from Supabase", prodData?.length);
         const { data: logData } = await supabase.from("price_logs").select("*");
+        console.log("initData: Fetched logs from Supabase", logData?.length);
         if (prodData && prodData.length > 0) dbProds = prodData;
         if (logData && logData.length > 0) dbLogs = logData;
       } catch (err) {
@@ -318,56 +278,24 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
         console.error("LocalStorage parse error:", err);
       }
 
-      // Extract sort order config from dbProds first, then localProds
-      let sortOrder: string[] = [];
-      const dbSortConfig = dbProds.find(p => p.id === 'sort-order-config');
-      if (dbSortConfig && dbSortConfig.keywords) {
-        sortOrder = dbSortConfig.keywords;
-      } else {
-        const localSortConfig = localProds.find(p => p.id === 'sort-order-config');
-        if (localSortConfig && localSortConfig.keywords) {
-          sortOrder = localSortConfig.keywords;
-        }
+      let finalProducts = mergeProducts(dbProds, localProds);
+      let finalLogs = mergeLogs(dbLogs, localLogs);
+
+      if (finalProducts.length === 0) {
+        finalProducts = INITIAL_PRODUCTS;
+        finalLogs = generateHistoricalLogs();
       }
-
-      // Exclude blacklisted/deleted products and sort-order-config dummy product
-      dbProds = dbProds.filter(p => p.id !== 'sort-order-config' && !isProductDeleted(p.id, p.name));
-      localProds = localProds.filter(p => p.id !== 'sort-order-config' && !isProductDeleted(p.id, p.name));
-      const filteredInitial = INITIAL_PRODUCTS.filter(p => p.id !== 'sort-order-config' && !isProductDeleted(p.id, p.name));
-
-      let finalProducts: Product[] = [];
-      if (dbProds.length > 0 || localProds.length > 0) {
-        // Merge Supabase and local storage products (local changes override stale db values)
-        finalProducts = mergeProducts(dbProds, localProds);
-      } else {
-        finalProducts = filteredInitial;
-      }
-
-      // Apply sorting if sortOrder is available
-      if (sortOrder.length > 0) {
-        const orderMap = new Map<string, number>();
-        sortOrder.forEach((id, idx) => orderMap.set(id, idx));
-        finalProducts.sort((a, b) => {
-          const idxA = orderMap.has(a.id) ? orderMap.get(a.id)! : 999999;
-          const idxB = orderMap.has(b.id) ? orderMap.get(b.id)! : 999999;
-          return idxA - idxB;
-        });
-      }
-
-      const validProductIds = new Set(finalProducts.map(p => p.id));
-      let finalLogs = mergeLogs(dbLogs, localLogs).filter(l => validProductIds.has(l.productId));
 
       setProducts(finalProducts);
       setPriceLogs(finalLogs);
-      
-      const sortConfigProduct: Product = {
-        id: 'sort-order-config',
-        name: 'SORT_ORDER_CONFIG',
-        keywords: finalProducts.map(p => p.id)
-      };
-      localStorage.setItem("price_monitor_products", JSON.stringify([...finalProducts, sortConfigProduct]));
+      localStorage.setItem("price_monitor_products", JSON.stringify(finalProducts));
       localStorage.setItem("price_monitor_logs", JSON.stringify(finalLogs));
 
+      // Sync merged result back to Supabase asynchronously
+      if (finalProducts.length > 0) supabase.from("products").upsert(finalProducts).then();
+      if (finalLogs.length > 0) supabase.from("price_logs").upsert(finalLogs).then();
+
+      console.log("initData: Setting isLoading to false");
       setIsLoading(false);
     };
 
@@ -375,36 +303,15 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
   }, []);
 
   // Sync state changes with localStorage and Supabase
-  const saveToLocalStorage = async (
-    updatedProducts: Product[],
-    updatedLogs: PriceLog[],
-    syncProductsToCloud: boolean = false
-  ) => {
-    const cleanProducts = updatedProducts.filter(p => p.id !== 'sort-order-config' && !isProductDeleted(p.id, p.name));
-    
-    // Construct the sort config dummy product
-    const sortConfigProduct: Product = {
-      id: 'sort-order-config',
-      name: 'SORT_ORDER_CONFIG',
-      keywords: cleanProducts.map(p => p.id) // store the order of product IDs
-    };
-
-    const productsToSave = [...cleanProducts, sortConfigProduct];
-    const validProdIds = new Set(cleanProducts.map(p => p.id));
-    const cleanLogs = updatedLogs.filter(l => validProdIds.has(l.productId));
-
-    setProducts(cleanProducts);
-    setPriceLogs(cleanLogs);
-    localStorage.setItem("price_monitor_products", JSON.stringify(productsToSave));
-    localStorage.setItem("price_monitor_logs", JSON.stringify(cleanLogs));
+  const saveToLocalStorage = async (updatedProducts: Product[], updatedLogs: PriceLog[]) => {
+    setProducts(updatedProducts);
+    setPriceLogs(updatedLogs);
+    localStorage.setItem("price_monitor_products", JSON.stringify(updatedProducts));
+    localStorage.setItem("price_monitor_logs", JSON.stringify(updatedLogs));
     
     try {
-      if (syncProductsToCloud && productsToSave.length > 0) {
-        await supabase.from("products").upsert(productsToSave);
-      }
-      if (cleanLogs.length > 0) {
-        await supabase.from("price_logs").upsert(cleanLogs);
-      }
+      if (updatedProducts.length > 0) await supabase.from("products").upsert(updatedProducts);
+      if (updatedLogs.length > 0) await supabase.from("price_logs").upsert(updatedLogs);
     } catch (e) {
       console.error("Supabase sync error:", e);
     }
@@ -423,8 +330,8 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
     );
     
     if (activeLog) {
-      setEditNaverPrice(activeLog.naverPrice === 0 ? "" : activeLog.naverPrice.toString());
-      setEditNaverShipping(activeLog.naverShipping === 0 ? "" : activeLog.naverShipping.toString());
+      setEditNaverPrice(activeLog.naverPrice.toString());
+      setEditNaverShipping(activeLog.naverShipping.toString());
       setEditCoupangSeller(activeLog.coupangSeller || "");
       setEditCoupangPrice(activeLog.coupangPrice === 0 ? "" : activeLog.coupangPrice.toString());
       setEditCoupangShipping(activeLog.coupangShipping === 0 ? "" : activeLog.coupangShipping.toString());
@@ -437,8 +344,8 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
       const mostRecentLog = pastLogs[0];
       
       if (mostRecentLog) {
-        setEditNaverPrice(mostRecentLog.naverPrice === 0 ? "" : mostRecentLog.naverPrice.toString());
-        setEditNaverShipping(mostRecentLog.naverShipping === 0 ? "" : mostRecentLog.naverShipping.toString());
+        setEditNaverPrice(mostRecentLog.naverPrice.toString());
+        setEditNaverShipping(mostRecentLog.naverShipping.toString());
         setEditCoupangSeller(mostRecentLog.coupangSeller || "");
         setEditCoupangPrice(mostRecentLog.coupangPrice === 0 ? "" : mostRecentLog.coupangPrice.toString());
         setEditCoupangShipping(mostRecentLog.coupangShipping === 0 ? "" : mostRecentLog.coupangShipping.toString());
@@ -560,8 +467,6 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
     );
 
     const updatedLogs = [...priceLogs];
-    const existingLog = existingLogIndex >= 0 ? priceLogs[existingLogIndex] : null;
-
     const newLog: PriceLog = {
       id: `log-${selectedProductId}-${selectedDate}`,
       date: selectedDate,
@@ -574,9 +479,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
       coupangShipping: coupShip,
       coupangTotal,
       difference,
-      keywordRanks: existingLog?.keywordRanks || Array(6).fill(""),
-      coupangKeywordRanks: existingLog?.coupangKeywordRanks || Array(6).fill(""),
-      memo: existingLog?.memo || getSavedMemos()[`${selectedProductId}_${selectedDate}`] || "",
+      keywordRanks: existingLogIndex >= 0 ? priceLogs[existingLogIndex].keywordRanks : [],
     };
 
     if (existingLogIndex >= 0) {
@@ -598,7 +501,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
       }
       return p;
     });
-    saveToLocalStorage(updatedProducts, priceLogs, true);
+    saveToLocalStorage(updatedProducts, priceLogs);
   };
 
   const handleKeywordVolumeChange = (productId: string, index: number, value: string) => {
@@ -610,7 +513,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
       }
       return p;
     });
-    saveToLocalStorage(updatedProducts, priceLogs, true);
+    saveToLocalStorage(updatedProducts, priceLogs);
   };
 
   const handleKeywordRankChange = (productId: string, index: number, value: string) => {
@@ -618,26 +521,35 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
       (log) => log.productId === productId && log.date === selectedDate
     );
     const updatedLogs = [...priceLogs];
-    const existingLog = existingLogIndex >= 0 ? updatedLogs[existingLogIndex] : null;
     
-    if (existingLog) {
-      const ranks = [...(existingLog.keywordRanks || Array(6).fill(""))];
+    if (existingLogIndex >= 0) {
+      const log = { ...updatedLogs[existingLogIndex] };
+      const ranks = [...(log.keywordRanks || Array(6).fill(""))];
       ranks[index] = value;
-      updatedLogs[existingLogIndex] = { ...existingLog, keywordRanks: ranks };
+      log.keywordRanks = ranks;
+      updatedLogs[existingLogIndex] = log;
     } else {
+      const pastLogs = priceLogs
+        .filter((l) => l.productId === productId && l.date < selectedDate)
+        .sort((a, b) => b.date.localeCompare(a.date));
+      const mostRecentLog = pastLogs[0];
+
       const ranks = Array(6).fill("");
       ranks[index] = value;
-      const memo = getSavedMemos()[`${productId}_${selectedDate}`] || "";
       const newLog: PriceLog = {
         id: `log-${productId}-${selectedDate}`,
         date: selectedDate,
         productId,
-        naverPrice: 0, naverShipping: 0, naverTotal: 0,
-        coupangSeller: "", coupangPrice: 0, coupangShipping: 0, coupangTotal: 0,
-        difference: 0,
+        naverPrice: mostRecentLog ? mostRecentLog.naverPrice : 0,
+        naverShipping: mostRecentLog ? mostRecentLog.naverShipping : 0,
+        naverTotal: mostRecentLog ? mostRecentLog.naverTotal : 0,
+        coupangSeller: mostRecentLog ? (mostRecentLog.coupangSeller || "") : "",
+        coupangPrice: mostRecentLog ? mostRecentLog.coupangPrice : 0,
+        coupangShipping: mostRecentLog ? mostRecentLog.coupangShipping : 0,
+        coupangTotal: mostRecentLog ? mostRecentLog.coupangTotal : 0,
+        difference: mostRecentLog ? mostRecentLog.difference : 0,
         keywordRanks: ranks,
-        coupangKeywordRanks: Array(6).fill(""),
-        memo,
+        coupangKeywordRanks: mostRecentLog ? (mostRecentLog.coupangKeywordRanks || Array(6).fill("")) : Array(6).fill("")
       };
       updatedLogs.push(newLog);
     }
@@ -649,26 +561,35 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
       (log) => log.productId === productId && log.date === selectedDate
     );
     const updatedLogs = [...priceLogs];
-    const existingLog = existingLogIndex >= 0 ? updatedLogs[existingLogIndex] : null;
     
-    if (existingLog) {
-      const ranks = [...(existingLog.coupangKeywordRanks || Array(6).fill(""))];
+    if (existingLogIndex >= 0) {
+      const log = { ...updatedLogs[existingLogIndex] };
+      const ranks = [...(log.coupangKeywordRanks || Array(6).fill(""))];
       ranks[index] = value;
-      updatedLogs[existingLogIndex] = { ...existingLog, coupangKeywordRanks: ranks };
+      log.coupangKeywordRanks = ranks;
+      updatedLogs[existingLogIndex] = log;
     } else {
+      const pastLogs = priceLogs
+        .filter((l) => l.productId === productId && l.date < selectedDate)
+        .sort((a, b) => b.date.localeCompare(a.date));
+      const mostRecentLog = pastLogs[0];
+
       const ranks = Array(6).fill("");
       ranks[index] = value;
-      const memo = getSavedMemos()[`${productId}_${selectedDate}`] || "";
       const newLog: PriceLog = {
         id: `log-${productId}-${selectedDate}`,
         date: selectedDate,
         productId,
-        naverPrice: 0, naverShipping: 0, naverTotal: 0,
-        coupangSeller: "", coupangPrice: 0, coupangShipping: 0, coupangTotal: 0,
-        difference: 0,
-        keywordRanks: Array(6).fill(""),
-        coupangKeywordRanks: ranks,
-        memo,
+        naverPrice: mostRecentLog ? mostRecentLog.naverPrice : 0,
+        naverShipping: mostRecentLog ? mostRecentLog.naverShipping : 0,
+        naverTotal: mostRecentLog ? mostRecentLog.naverTotal : 0,
+        coupangSeller: mostRecentLog ? (mostRecentLog.coupangSeller || "") : "",
+        coupangPrice: mostRecentLog ? mostRecentLog.coupangPrice : 0,
+        coupangShipping: mostRecentLog ? mostRecentLog.coupangShipping : 0,
+        coupangTotal: mostRecentLog ? mostRecentLog.coupangTotal : 0,
+        difference: mostRecentLog ? mostRecentLog.difference : 0,
+        keywordRanks: mostRecentLog ? (mostRecentLog.keywordRanks || Array(6).fill("")) : Array(6).fill(""),
+        coupangKeywordRanks: ranks
       };
       updatedLogs.push(newLog);
     }
@@ -676,8 +597,6 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
   };
 
   const handleMemoChange = (productId: string, date: string, value: string) => {
-    saveMemoToLocalStorage(productId, date, value);
-
     const existingLogIndex = priceLogs.findIndex(
       (log) => log.productId === productId && log.date === date
     );
@@ -688,15 +607,25 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
       log.memo = value;
       updatedLogs[existingLogIndex] = log;
     } else {
+      const pastLogs = priceLogs
+        .filter((l) => l.productId === productId && l.date < date)
+        .sort((a, b) => b.date.localeCompare(a.date));
+      const mostRecentLog = pastLogs[0];
+
       const newLog: PriceLog = {
         id: `log-${productId}-${date}`,
         date: date,
         productId,
-        naverPrice: 0, naverShipping: 0, naverTotal: 0,
-        coupangSeller: "", coupangPrice: 0, coupangShipping: 0, coupangTotal: 0,
-        difference: 0,
-        keywordRanks: Array(6).fill(""),
-        coupangKeywordRanks: Array(6).fill(""),
+        naverPrice: mostRecentLog ? mostRecentLog.naverPrice : 0,
+        naverShipping: mostRecentLog ? mostRecentLog.naverShipping : 0,
+        naverTotal: mostRecentLog ? mostRecentLog.naverTotal : 0,
+        coupangSeller: mostRecentLog ? (mostRecentLog.coupangSeller || "") : "",
+        coupangPrice: mostRecentLog ? mostRecentLog.coupangPrice : 0,
+        coupangShipping: mostRecentLog ? mostRecentLog.coupangShipping : 0,
+        coupangTotal: mostRecentLog ? mostRecentLog.coupangTotal : 0,
+        difference: mostRecentLog ? mostRecentLog.difference : 0,
+        keywordRanks: mostRecentLog ? (mostRecentLog.keywordRanks || []) : [],
+        coupangKeywordRanks: mostRecentLog ? (mostRecentLog.coupangKeywordRanks || []) : [],
         memo: value
       };
       updatedLogs.push(newLog);
@@ -812,20 +741,15 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
     if (!newProductName.trim()) return;
 
     const newId = `prod-${Date.now()}`;
-    const trimmedName = newProductName.trim();
-
-    // Explicit user action unblacklists product
-    unblacklistProduct(newId, trimmedName);
-
     const newProduct: Product = {
       id: newId,
-      name: trimmedName,
+      name: newProductName.trim(),
       naverUrl: newProductNaverUrl.trim() || undefined,
       coupangUrl: newProductCoupangUrl.trim() || undefined,
     };
 
     const updatedProducts = [...products, newProduct];
-    saveToLocalStorage(updatedProducts, priceLogs, true);
+    saveToLocalStorage(updatedProducts, priceLogs);
     
     // Auto select the new product
     setSelectedProductId(newId);
@@ -839,74 +763,17 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
   };
 
   // Delete product
-  const handleDeleteProduct = async (productId: string) => {
-    const targetProd = products.find((p) => p.id === productId);
-    const targetName = targetProd?.name?.trim();
-
+  const handleDeleteProduct = (productId: string) => {
     if (confirm("정말로 이 품목과 연동된 가격 모니터링 로그를 삭제하시겠습니까?")) {
-      // 1. Blacklist product ID & name (and variants) so it NEVER reappears unless explicitly added
-      saveDeletedProduct(productId, targetName);
-
-      // 2. Filter local state and storage
-      const updatedProducts = products.filter(
-        (p) => p.id !== productId && !isProductDeleted(p.id, p.name)
-      );
+      const updatedProducts = products.filter((p) => p.id !== productId);
       const updatedLogs = priceLogs.filter((l) => l.productId !== productId);
       
-      saveToLocalStorage(updatedProducts, updatedLogs, true);
-
-      try {
-        const cpStr = localStorage.getItem("coupang_products");
-        if (cpStr) {
-          const cpList = JSON.parse(cpStr);
-          const filteredCp = cpList.filter((p: any) => !isProductDeleted(p.id, p.name));
-          localStorage.setItem("coupang_products", JSON.stringify(filteredCp));
-        }
-      } catch (e) {}
-
-      // 3. Delete from Supabase cloud database permanently across all tables
-      try {
-        await supabase.from("products").delete().eq("id", productId);
-        await supabase.from("price_logs").delete().eq("productId", productId);
-        await supabase.from("coupang_products").delete().eq("id", productId);
-        if (targetName) {
-          const prefix = targetName.split(/[\(\,]/)[0].trim();
-          await supabase.from("products").delete().ilike("name", `%${prefix}%`);
-          await supabase.from("coupang_products").delete().ilike("name", `%${prefix}%`);
-        }
-      } catch (e) {
-        console.error("Supabase delete error:", e);
-      }
-
+      saveToLocalStorage(updatedProducts, updatedLogs);
       if (selectedProductId === productId) {
         setSelectedProductId(updatedProducts[0]?.id || "");
       }
       showToast("품목이 성공적으로 삭제되었습니다.");
     }
-  };
-
-  // Move product up or down in the sort order
-  const handleMoveProduct = (itemId: string, direction: "up" | "down") => {
-    const filteredIdx = filteredLogs.findIndex(item => item.id === itemId);
-    if (filteredIdx === -1) return;
-    
-    const targetFilteredIdx = direction === "up" ? filteredIdx - 1 : filteredIdx + 1;
-    if (targetFilteredIdx < 0 || targetFilteredIdx >= filteredLogs.length) return;
-    
-    const currentItem = filteredLogs[filteredIdx];
-    const targetItem = filteredLogs[targetFilteredIdx];
-    
-    const masterIdxCurrent = products.findIndex(p => p.id === currentItem.id);
-    const masterIdxTarget = products.findIndex(p => p.id === targetItem.id);
-    
-    if (masterIdxCurrent === -1 || masterIdxTarget === -1) return;
-    
-    const updatedProducts = [...products];
-    const temp = updatedProducts[masterIdxCurrent];
-    updatedProducts[masterIdxCurrent] = updatedProducts[masterIdxTarget];
-    updatedProducts[masterIdxTarget] = temp;
-    
-    saveToLocalStorage(updatedProducts, priceLogs, true);
   };
 
   // Export database as JSON
@@ -934,7 +801,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
           if (parsed.products && parsed.priceLogs) {
             const mergedProducts = mergeProducts(products, parsed.products);
             const mergedLogs = mergeLogs(priceLogs, parsed.priceLogs);
-            saveToLocalStorage(mergedProducts, mergedLogs, true);
+            saveToLocalStorage(mergedProducts, mergedLogs);
             
             const prodWithKw = mergedProducts.find(p => p.keywords && p.keywords.some(k => k));
             if (prodWithKw && (!selectedProduct?.keywords || !selectedProduct.keywords.some(k => k))) {
@@ -1223,34 +1090,8 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                             id={`row-${item.id}`}
                           >
                             {/* Number */}
-                            <td className="py-3 px-1 text-center text-xs text-slate-400 group-hover:text-slate-600 w-16">
-                              <div className="flex items-center justify-center gap-1">
-                                <span className="w-4 text-center">{idx + 1}</span>
-                                <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleMoveProduct(item.id, "up");
-                                    }}
-                                    disabled={idx === 0}
-                                    className="p-0.5 hover:bg-slate-200 rounded text-slate-500 disabled:opacity-20 disabled:hover:bg-transparent"
-                                    title="위로 이동"
-                                  >
-                                    <ChevronUp size={12} />
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleMoveProduct(item.id, "down");
-                                    }}
-                                    disabled={idx === filteredLogs.length - 1}
-                                    className="p-0.5 hover:bg-slate-200 rounded text-slate-500 disabled:opacity-20 disabled:hover:bg-transparent"
-                                    title="아래로 이동"
-                                  >
-                                    <ChevronDown size={12} />
-                                  </button>
-                                </div>
-                              </div>
+                            <td className="py-3 px-3 text-center text-xs text-slate-400 group-hover:text-slate-600">
+                              {idx + 1}
                             </td>
                             
                             {/* Name */}
@@ -1264,7 +1105,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                                   const newName = e.target.value.trim();
                                   if (newName && newName !== item.name) {
                                     const updatedProducts = products.map(p => p.id === item.id ? { ...p, name: newName } : p);
-                                    saveToLocalStorage(updatedProducts, priceLogs, true);
+                                    saveToLocalStorage(updatedProducts, priceLogs);
                                     showToast(`품목 이름이 '${newName}'(으)로 변경되었습니다.`);
                                   } else if (!newName) {
                                     e.target.value = item.name; // reset if empty
@@ -1279,70 +1120,16 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                                 title="클릭해서 품목 이름 수정"
                               />
                               <div className="flex gap-2 mt-0.5 transition-opacity items-center">
-                                {editingNaverUrlProductId === item.id ? (
-                                  <input
-                                    type="text"
-                                    defaultValue={item.naverUrl || ""}
-                                    placeholder="네이버 쇼핑 URL 입력"
+                                {item.naverUrl && (
+                                  <a 
+                                    href={item.naverUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
                                     onClick={(e) => e.stopPropagation()}
-                                    onBlur={(e) => {
-                                      const newUrl = e.target.value.trim();
-                                      if (newUrl !== (item.naverUrl || "")) {
-                                        const updatedProducts = products.map(p => 
-                                          p.id === item.id ? { ...p, naverUrl: newUrl || undefined } : p
-                                        );
-                                        saveToLocalStorage(updatedProducts, priceLogs, true);
-                                        showToast("네이버 쇼핑 링크가 수정되었습니다.");
-                                      }
-                                      setEditingNaverUrlProductId(null);
-                                    }}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter') {
-                                        e.currentTarget.blur();
-                                      } else if (e.key === 'Escape') {
-                                        setEditingNaverUrlProductId(null);
-                                      }
-                                    }}
-                                    className="text-[10px] px-1 py-0.5 rounded border border-amber-400 outline-none w-48 text-slate-800 font-normal"
-                                    autoFocus
-                                  />
-                                ) : (
-                                  <>
-                                    {item.naverUrl ? (
-                                      <div className="flex items-center gap-1">
-                                        <a 
-                                          href={item.naverUrl} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer" 
-                                          onClick={(e) => e.stopPropagation()}
-                                          className="text-[10px] text-amber-600 hover:underline flex items-center gap-0.5"
-                                        >
-                                          네이버 쇼핑 <ExternalLink size={8} />
-                                        </a>
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setEditingNaverUrlProductId(item.id);
-                                          }}
-                                          className="text-slate-400 hover:text-amber-600 p-0.5"
-                                          title="네이버 쇼핑 링크 수정"
-                                        >
-                                          <Edit2 size={8} />
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setEditingNaverUrlProductId(item.id);
-                                        }}
-                                        className="text-[10px] text-slate-400 hover:text-amber-600 flex items-center gap-0.5"
-                                        title="네이버 쇼핑 링크 등록"
-                                      >
-                                        네이버 쇼핑 등록 <Plus size={8} />
-                                      </button>
-                                    )}
-                                  </>
+                                    className="text-[10px] text-amber-600 hover:underline flex items-center gap-0.5"
+                                  >
+                                    네이버 쇼핑 <ExternalLink size={8} />
+                                  </a>
                                 )}
                                 {item.coupangUrl && (
                                   <a 
@@ -2161,8 +1948,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                               type="number" 
                               placeholder="0"
                               value={editNaverPrice}
-                              onFocus={(e) => e.target.select()}
-                              onChange={(e) => setEditNaverPrice(e.target.value.replace(/^0+(?=\d)/, ''))}
+                              onChange={(e) => setEditNaverPrice(e.target.value)}
                               className="bg-white border border-slate-200 rounded p-1.5 text-xs outline-none focus:border-amber-400"
                               id="input-naver-price"
                             />
@@ -2173,8 +1959,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                               type="number" 
                               placeholder="0"
                               value={editNaverShipping}
-                              onFocus={(e) => e.target.select()}
-                              onChange={(e) => setEditNaverShipping(e.target.value.replace(/^0+(?=\d)/, ''))}
+                              onChange={(e) => setEditNaverShipping(e.target.value)}
                               className="bg-white border border-slate-200 rounded p-1.5 text-xs outline-none focus:border-amber-400"
                               id="input-naver-shipping"
                             />
@@ -2206,8 +1991,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                               type="number" 
                               placeholder="0"
                               value={editCoupangPrice}
-                              onFocus={(e) => e.target.select()}
-                              onChange={(e) => setEditCoupangPrice(e.target.value.replace(/^0+(?=\d)/, ''))}
+                              onChange={(e) => setEditCoupangPrice(e.target.value)}
                               className="bg-white border border-slate-200 rounded p-1.5 text-xs outline-none focus:border-blue-400"
                               id="input-coupang-price"
                             />
@@ -2218,8 +2002,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                               type="number" 
                               placeholder="0"
                               value={editCoupangShipping}
-                              onFocus={(e) => e.target.select()}
-                              onChange={(e) => setEditCoupangShipping(e.target.value.replace(/^0+(?=\d)/, ''))}
+                              onChange={(e) => setEditCoupangShipping(e.target.value)}
                               className="bg-white border border-slate-200 rounded p-1.5 text-xs outline-none focus:border-blue-400"
                               id="input-coupang-shipping"
                             />
@@ -2351,7 +2134,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                                 const newName = e.target.value.trim();
                                 if (newName && newName !== p.name) {
                                   const updatedProducts = products.map(prod => prod.id === p.id ? { ...prod, name: newName } : prod);
-                                  saveToLocalStorage(updatedProducts, priceLogs, true);
+                                  saveToLocalStorage(updatedProducts, priceLogs);
                                   showToast(`품목 이름이 변경되었습니다.`);
                                 } else if (!newName) {
                                   e.target.value = p.name;
