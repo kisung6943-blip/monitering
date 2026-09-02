@@ -160,13 +160,13 @@ export function recalculateOrder(
       feeRate = totalPrice > 0 ? (feeAmount / totalPrice) * 100 : feeRate;
     } else {
       feeAmount = Math.round(totalPrice * (feeRate / 100));
-      settlementAmount = totalPrice - feeAmount;
+      settlementAmount = totalPrice - feeAmount + buyerShippingFee;
     }
   } else if (platform === 'coupang') {
     // 쿠팡: 카테고리별 수수료 (일반 13%, 쌀/양곡 6%) 및 정산금액 (판매금액 - 수수료)
     feeRate = getPlatformFeeRate('coupang', order.productName || '', settings);
     feeAmount = Math.round(totalPrice * (feeRate / 100));
-    settlementAmount = totalPrice - feeAmount;
+    settlementAmount = totalPrice - feeAmount + buyerShippingFee;
   } else if (platform === 'smartstore') {
     // 스마트스토어: 결제수수료 + 지식쇼핑수수료
     if (order.settlementAmount && order.settlementAmount > 0) {
@@ -196,13 +196,13 @@ export function recalculateOrder(
     } else if (order.feeAmount !== undefined && order.knowledgeShoppingFee !== undefined) {
       feeAmount = Math.abs(Number(order.feeAmount));
       knowledgeShoppingFee = Math.abs(Number(order.knowledgeShoppingFee));
-      settlementAmount = totalPrice - (feeAmount + knowledgeShoppingFee);
+      settlementAmount = totalPrice - (feeAmount + knowledgeShoppingFee) + buyerShippingFee;
     } else {
       const baseFee = Math.round(totalPrice * (settings.smartstoreBaseFee / 100));
       const kFee = Math.round(totalPrice * (settings.smartstoreKnowledgeFee / 100));
       feeAmount = baseFee;
       knowledgeShoppingFee = kFee;
-      settlementAmount = totalPrice - (baseFee + kFee);
+      settlementAmount = totalPrice - (baseFee + kFee) + buyerShippingFee;
     }
   } else {
     // 쿠팡, 자사몰, 11번가, G마켓, 옥션
@@ -229,10 +229,10 @@ export function recalculateOrder(
       settlementAmount = rawSettlement;
     } else if (order.feeAmount !== undefined) {
       feeAmount = Math.abs(Number(order.feeAmount));
-      settlementAmount = totalPrice - feeAmount + (platform === 'elevenst' ? buyerShippingFee : 0);
+      settlementAmount = totalPrice - feeAmount + (platform === 'elevenst' ? 0 : buyerShippingFee);
     } else {
       feeAmount = Math.round(totalPrice * (feeRate / 100) * 10) / 10;
-      settlementAmount = Math.round(totalPrice - feeAmount + (platform === 'elevenst' ? buyerShippingFee : 0));
+      settlementAmount = Math.round(totalPrice - feeAmount + (platform === 'elevenst' ? 0 : buyerShippingFee));
     }
   }
 
@@ -262,11 +262,8 @@ export function recalculateOrder(
       : settings.defaultActualShippingCost;
   }
 
-  // Gross profit: 정산가 + 고객배송비 - 원가합계 - 포장비 - 실배송비
-  // 11번가(elevenst)의 경우 엑셀 정산가에 배송비가 이미 포함되어 있으므로 고객배송비(buyerShippingFee)를 가산하지 않음
-  const grossProfit = platform === 'elevenst'
-    ? Math.round(settlementAmount - totalCost - packagingCost - actualShippingCost)
-    : Math.round(settlementAmount + buyerShippingFee - totalCost - packagingCost - actualShippingCost);
+  // Gross profit: 정산가 - 원가합계 - 포장비 - 실배송비 (모든 플랫폼 동일 적용)
+  const grossProfit = Math.round(settlementAmount - totalCost - packagingCost - actualShippingCost);
 
   // VAT (부가세)
   let vatAmount = 0;
