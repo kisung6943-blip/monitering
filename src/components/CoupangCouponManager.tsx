@@ -110,12 +110,14 @@ const getDDay = (validTo: string): { label: string, isUrgent: boolean } => {
 
 export default function CoupangCouponManager() {
   const [coupons, setCoupons] = useState<Coupon[]>(() => {
-    const saved = localStorage.getItem('coupang_coupons');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return INITIAL_MOCK_COUPONS;
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('coupang_coupons');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          return INITIAL_MOCK_COUPONS;
+        }
       }
     }
     return INITIAL_MOCK_COUPONS;
@@ -125,7 +127,9 @@ export default function CoupangCouponManager() {
   const [filter, setFilter] = useState<'all' | 'active' | 'used'>('all');
 
   useEffect(() => {
-    localStorage.setItem('coupang_coupons', JSON.stringify(coupons));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('coupang_coupons', JSON.stringify(coupons));
+    }
   }, [coupons]);
 
   const handleAddCoupon = (newCouponData: Omit<Coupon, 'id' | 'status'>) => {

@@ -111,13 +111,18 @@ export const INITIAL_ITEM_MARGIN_ROWS: ItemMarginRow[] = [
 export default function CoupangItemMarginCalc() {
   // LocalStorage state
   const [items, setItems] = useState<ItemMarginRow[]>(() => {
-    const saved = localStorage.getItem("coupang_item_margin_rows");
-    return saved ? JSON.parse(saved) : INITIAL_ITEM_MARGIN_ROWS;
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem("coupang_item_margin_rows");
+      return saved ? JSON.parse(saved) : INITIAL_ITEM_MARGIN_ROWS;
+    }
+    return INITIAL_ITEM_MARGIN_ROWS;
   });
 
   // Save changes
   useEffect(() => {
-    localStorage.setItem("coupang_item_margin_rows", JSON.stringify(items));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem("coupang_item_margin_rows", JSON.stringify(items));
+    }
   }, [items]);
 
   // Form Mode: "retail" (최저가 기준) vs "supply" (쿠팡공급가 직접)

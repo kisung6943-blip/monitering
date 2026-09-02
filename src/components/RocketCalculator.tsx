@@ -110,8 +110,10 @@ export default function RocketCalculator() {
   const [products, setProducts] = useState<ProductMaster[]>(() => {
     let p1: any[] = [];
     try {
-      const saved1 = localStorage.getItem('coupang_products');
-      if (saved1) p1 = JSON.parse(saved1);
+      if (typeof window !== 'undefined') {
+        const saved1 = localStorage.getItem('coupang_products');
+        if (saved1) p1 = JSON.parse(saved1);
+      }
     } catch (e) {}
 
     const merged = mergeAllProductSources(INITIAL_PRODUCTS, p1);
@@ -119,25 +121,29 @@ export default function RocketCalculator() {
   });
 
   const [settlements, setSettlements] = useState<OrderSettlement[]>(() => {
-    const saved = localStorage.getItem('coupang_settlements');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.some((s: any) => s.productName?.includes('요거트'))) return INITIAL_SETTLEMENTS;
-        return parsed;
-      } catch (e) {}
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('coupang_settlements');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed.some((s: any) => s.productName?.includes('요거트'))) return INITIAL_SETTLEMENTS;
+          return parsed;
+        } catch (e) {}
+      }
     }
     return INITIAL_SETTLEMENTS;
   });
 
   const [dailyAdCosts, setDailyAdCosts] = useState<DailyProductAdCost[]>(() => {
-    const saved = localStorage.getItem('coupang_daily_ads');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.some((a: any) => a.productName?.includes('요거트'))) return INITIAL_DAILY_AD_COSTS;
-        return parsed;
-      } catch (e) {}
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('coupang_daily_ads');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed.some((a: any) => a.productName?.includes('요거트'))) return INITIAL_DAILY_AD_COSTS;
+          return parsed;
+        } catch (e) {}
+      }
     }
     return INITIAL_DAILY_AD_COSTS;
   });

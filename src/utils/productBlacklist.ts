@@ -1,25 +1,29 @@
 export const getDeletedProductIds = (): Set<string> => {
   try {
-    const saved1 = localStorage.getItem('coupang_deleted_product_ids');
-    const saved2 = localStorage.getItem('price_monitor_deleted_product_ids');
-    const combined = [
-      ...(saved1 ? JSON.parse(saved1) : []),
-      ...(saved2 ? JSON.parse(saved2) : []),
-    ];
-    return new Set(combined);
+    if (typeof window !== 'undefined') {
+      const saved1 = localStorage.getItem('coupang_deleted_product_ids');
+      const saved2 = localStorage.getItem('price_monitor_deleted_product_ids');
+      const combined = [
+        ...(saved1 ? JSON.parse(saved1) : []),
+        ...(saved2 ? JSON.parse(saved2) : []),
+      ];
+      return new Set(combined);
+    }
   } catch (e) {}
   return new Set();
 };
 
 export const getDeletedProductNames = (): Set<string> => {
   try {
-    const saved1 = localStorage.getItem('coupang_deleted_product_names');
-    const saved2 = localStorage.getItem('price_monitor_deleted_product_names');
-    const combined = [
-      ...(saved1 ? JSON.parse(saved1) : []),
-      ...(saved2 ? JSON.parse(saved2) : []),
-    ];
-    return new Set(combined);
+    if (typeof window !== 'undefined') {
+      const saved1 = localStorage.getItem('coupang_deleted_product_names');
+      const saved2 = localStorage.getItem('price_monitor_deleted_product_names');
+      const combined = [
+        ...(saved1 ? JSON.parse(saved1) : []),
+        ...(saved2 ? JSON.parse(saved2) : []),
+      ];
+      return new Set(combined);
+    }
   } catch (e) {}
   return new Set();
 };
@@ -39,6 +43,7 @@ export const extractNameVariants = (name: string): string[] => {
 };
 
 export const saveDeletedProduct = (id: string, name?: string) => {
+  if (typeof window === 'undefined') return;
   const ids = getDeletedProductIds();
   if (id) ids.add(id);
   const idsArr = Array.from(ids);
@@ -56,6 +61,7 @@ export const saveDeletedProduct = (id: string, name?: string) => {
 };
 
 export const unblacklistProduct = (id?: string, name?: string) => {
+  if (typeof window === 'undefined') return;
   if (id) {
     const ids = getDeletedProductIds();
     ids.delete(id);

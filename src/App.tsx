@@ -37,12 +37,14 @@ export default function App() {
   
   // Selected product for chart and quick logging (remember last selected or default to 스퀴지)
   const [selectedProductId, setSelectedProductIdState] = useState<string>(
-    () => localStorage.getItem("price_monitor_selected_product_id") || "prod-1785412875494"
+    () => (typeof window !== 'undefined' ? localStorage.getItem("price_monitor_selected_product_id") : null) || "prod-1785412875494"
   );
   
   const setSelectedProductId = (id: string) => {
     setSelectedProductIdState(id);
-    localStorage.setItem("price_monitor_selected_product_id", id);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem("price_monitor_selected_product_id", id);
+    }
   };
   
   // AI Parsing states
@@ -50,12 +52,12 @@ export default function App() {
   const [isAiParsing, setIsAiParsing] = useState(false);
   const [aiParseError, setAiParseError] = useState<string | null>(null);
   const [aiParsingPlatform, setAiParsingPlatform] = useState<"naver" | "coupang">("naver");
-  const [localApiKey, setLocalApiKey] = useState(() => localStorage.getItem("gemini_api_key") || "");
-  const [showApiKeyInput, setShowApiKeyInput] = useState(!import.meta.env.VITE_GEMINI_API_KEY && !localStorage.getItem("gemini_api_key"));
+  const [localApiKey, setLocalApiKey] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem("gemini_api_key") : null) || "");
+  const [showApiKeyInput, setShowApiKeyInput] = useState(() => !(typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) && (typeof window !== 'undefined' ? !localStorage.getItem("gemini_api_key") : true));
   const [aiInputImage, setAiInputImage] = useState<string | null>(null);
   
   // Keyword Rank AI parsing
-  const [myStoreName, setMyStoreName] = useState(() => localStorage.getItem("my_store_name") || "ES리빙");
+  const [myStoreName, setMyStoreName] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem("my_store_name") : null) || "ES리빙");
   const [activeAiKeywordIndex, setActiveAiKeywordIndex] = useState<{ index: number, platform: 'naver' | 'coupang' } | null>(null);
   const [isKeywordAiParsing, setIsKeywordAiParsing] = useState<boolean>(false);
 
@@ -270,10 +272,12 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
       let localProds: Product[] = [];
       let localLogs: PriceLog[] = [];
       try {
-        const storedProducts = localStorage.getItem("price_monitor_products");
-        const storedLogs = localStorage.getItem("price_monitor_logs");
-        if (storedProducts) localProds = JSON.parse(storedProducts);
-        if (storedLogs) localLogs = JSON.parse(storedLogs);
+        if (typeof window !== 'undefined') {
+          const storedProducts = localStorage.getItem("price_monitor_products");
+          const storedLogs = localStorage.getItem("price_monitor_logs");
+          if (storedProducts) localProds = JSON.parse(storedProducts);
+          if (storedLogs) localLogs = JSON.parse(storedLogs);
+        }
       } catch (err) {
         console.error("LocalStorage parse error:", err);
       }
@@ -288,8 +292,10 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
 
       setProducts(finalProducts);
       setPriceLogs(finalLogs);
-      localStorage.setItem("price_monitor_products", JSON.stringify(finalProducts));
-      localStorage.setItem("price_monitor_logs", JSON.stringify(finalLogs));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem("price_monitor_products", JSON.stringify(finalProducts));
+        localStorage.setItem("price_monitor_logs", JSON.stringify(finalLogs));
+      }
 
       // Sync merged result back to Supabase asynchronously
       if (finalProducts.length > 0) supabase.from("products").upsert(finalProducts).then();
@@ -306,8 +312,10 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
   const saveToLocalStorage = async (updatedProducts: Product[], updatedLogs: PriceLog[]) => {
     setProducts(updatedProducts);
     setPriceLogs(updatedLogs);
-    localStorage.setItem("price_monitor_products", JSON.stringify(updatedProducts));
-    localStorage.setItem("price_monitor_logs", JSON.stringify(updatedLogs));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem("price_monitor_products", JSON.stringify(updatedProducts));
+      localStorage.setItem("price_monitor_logs", JSON.stringify(updatedLogs));
+    }
     
     try {
       if (updatedProducts.length > 0) await supabase.from("products").upsert(updatedProducts);

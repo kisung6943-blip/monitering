@@ -20,8 +20,10 @@ export default function DailyCalculator() {
   // 1. Core State with LocalStorage Persistence
   const [orders, setOrders] = useState<OrderItem[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_ORDERS_KEY);
-      if (saved) return JSON.parse(saved);
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem(STORAGE_ORDERS_KEY);
+        if (saved) return JSON.parse(saved);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -30,8 +32,10 @@ export default function DailyCalculator() {
 
   const [costItems, setCostItems] = useState<CostItem[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_COSTS_KEY);
-      if (saved) return JSON.parse(saved);
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem(STORAGE_COSTS_KEY);
+        if (saved) return JSON.parse(saved);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -40,8 +44,10 @@ export default function DailyCalculator() {
 
   const [settings, setSettings] = useState<SettlementSettings>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_SETTINGS_KEY);
-      if (saved) return JSON.parse(saved);
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem(STORAGE_SETTINGS_KEY);
+        if (saved) return JSON.parse(saved);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -50,8 +56,10 @@ export default function DailyCalculator() {
 
   const [adSpends, setAdSpends] = useState<Record<string, number>>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_AD_SPENDS_KEY);
-      if (saved) return JSON.parse(saved);
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem(STORAGE_AD_SPENDS_KEY);
+        if (saved) return JSON.parse(saved);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -70,25 +78,33 @@ export default function DailyCalculator() {
   // Sync to localStorage
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_ORDERS_KEY, JSON.stringify(orders));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_ORDERS_KEY, JSON.stringify(orders));
+      }
     } catch (e) {}
   }, [orders]);
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_COSTS_KEY, JSON.stringify(costItems));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_COSTS_KEY, JSON.stringify(costItems));
+      }
     } catch (e) {}
   }, [costItems]);
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(settings));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(settings));
+      }
     } catch (e) {}
   }, [settings]);
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_AD_SPENDS_KEY, JSON.stringify(adSpends));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_AD_SPENDS_KEY, JSON.stringify(adSpends));
+      }
     } catch (e) {}
   }, [adSpends]);
 
