@@ -1225,64 +1225,70 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
 
                              {/* Naver Sale */}
                              <td className="py-2 px-1 text-right bg-amber-50/20 text-slate-800">
-                               <input
-                                 key={`navPrice-${item.id}-${selectedDate}-${item.naverPrice}`}
-                                 type="text"
-                                 defaultValue={item.hasLog && item.naverPrice > 0 ? item.naverPrice.toLocaleString() : ""}
-                                 placeholder="-"
-                                 onClick={(e) => e.stopPropagation()}
-                                 onFocus={(e) => {
-                                   if (item.hasLog && item.naverPrice > 0) e.target.value = item.naverPrice.toString();
-                                   e.target.select();
-                                 }}
-                                 onBlur={(e) => {
-                                   const rawVal = e.target.value.replace(/,/g, "").trim();
-                                   const numVal = parseInt(rawVal) || 0;
-                                   if (numVal !== (item.hasLog ? item.naverPrice : 0)) {
-                                     handleUpdateItemLog(item.id, 'naverPrice', numVal);
-                                   } else {
-                                     e.target.value = item.hasLog && item.naverPrice > 0 ? item.naverPrice.toLocaleString() : "";
-                                   }
-                                 }}
-                                 onKeyDown={(e) => {
-                                   if (e.key === 'Enter') {
-                                     e.currentTarget.blur();
-                                   }
-                                 }}
-                                 className="w-full text-right bg-transparent outline-none border border-transparent hover:border-amber-400 focus:border-amber-500 focus:bg-white font-medium text-slate-900 text-xs py-1 px-1 rounded transition-all cursor-text"
-                                 title="클릭하여 네이버 판매가 수정 (원)"
-                               />
+                               <div className="flex items-center justify-end gap-1">
+                                 <input
+                                   key={`navPrice-${item.id}-${selectedDate}-${item.naverPrice}`}
+                                   type="text"
+                                   defaultValue={item.hasLog && item.naverPrice > 0 ? item.naverPrice.toLocaleString() : ""}
+                                   placeholder="0"
+                                   onClick={(e) => e.stopPropagation()}
+                                   onFocus={(e) => {
+                                     if (item.hasLog && item.naverPrice > 0) e.target.value = item.naverPrice.toString();
+                                     e.target.select();
+                                   }}
+                                   onBlur={(e) => {
+                                     const rawVal = e.target.value.replace(/,/g, "").trim();
+                                     const numVal = parseInt(rawVal) || 0;
+                                     if (numVal !== (item.hasLog ? item.naverPrice : 0)) {
+                                       handleUpdateItemLog(item.id, 'naverPrice', numVal);
+                                     } else {
+                                       e.target.value = item.hasLog && item.naverPrice > 0 ? item.naverPrice.toLocaleString() : "";
+                                     }
+                                   }}
+                                   onKeyDown={(e) => {
+                                     if (e.key === 'Enter') {
+                                       e.currentTarget.blur();
+                                     }
+                                   }}
+                                   className="w-20 text-right bg-white border border-slate-300 hover:border-amber-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 font-semibold text-slate-900 text-xs py-1 px-1.5 rounded outline-none transition-all cursor-text"
+                                   title="클릭하여 네이버 판매가 수정"
+                                 />
+                                 <span className="text-[11px] text-slate-400 shrink-0">원</span>
+                               </div>
                              </td>
 
                              {/* Naver Ship */}
                              <td className="py-2 px-1 text-right bg-amber-50/20 text-slate-500 text-xs">
-                               <input
-                                 key={`navShip-${item.id}-${selectedDate}-${item.naverShipping}`}
-                                 type="text"
-                                 defaultValue={item.hasLog && item.naverPrice > 0 ? (item.naverShipping === 0 ? "0" : item.naverShipping.toLocaleString()) : ""}
-                                 placeholder="-"
-                                 onClick={(e) => e.stopPropagation()}
-                                 onFocus={(e) => {
-                                   e.target.value = item.naverShipping.toString();
-                                   e.target.select();
-                                 }}
-                                 onBlur={(e) => {
-                                   const rawVal = e.target.value.replace(/,/g, "").trim();
-                                   const numVal = parseInt(rawVal) || 0;
-                                   if (numVal !== item.naverShipping) {
-                                     handleUpdateItemLog(item.id, 'naverShipping', numVal);
-                                   } else {
-                                     e.target.value = item.hasLog && item.naverPrice > 0 ? (item.naverShipping === 0 ? "0" : item.naverShipping.toLocaleString()) : "";
-                                   }
-                                 }}
-                                 onKeyDown={(e) => {
-                                   if (e.key === 'Enter') {
-                                     e.currentTarget.blur();
-                                   }
-                                 }}
-                                 className="w-full text-right bg-transparent outline-none border border-transparent hover:border-amber-400 focus:border-amber-500 focus:bg-white text-slate-700 text-xs py-1 px-1 rounded transition-all cursor-text"
-                                 title="클릭하여 네이버 배송비 수정 (원)"
-                               />
+                               <div className="flex items-center justify-end gap-1">
+                                 <input
+                                   key={`navShip-${item.id}-${selectedDate}-${item.naverShipping}`}
+                                   type="text"
+                                   defaultValue={item.hasLog && item.naverPrice > 0 ? (item.naverShipping === 0 ? "0" : item.naverShipping.toLocaleString()) : ""}
+                                   placeholder="0"
+                                   onClick={(e) => e.stopPropagation()}
+                                   onFocus={(e) => {
+                                     e.target.value = item.naverShipping.toString();
+                                     e.target.select();
+                                   }}
+                                   onBlur={(e) => {
+                                     const rawVal = e.target.value.replace(/,/g, "").trim();
+                                     const numVal = parseInt(rawVal) || 0;
+                                     if (numVal !== item.naverShipping) {
+                                       handleUpdateItemLog(item.id, 'naverShipping', numVal);
+                                     } else {
+                                       e.target.value = item.hasLog && item.naverPrice > 0 ? (item.naverShipping === 0 ? "0" : item.naverShipping.toLocaleString()) : "";
+                                     }
+                                   }}
+                                   onKeyDown={(e) => {
+                                     if (e.key === 'Enter') {
+                                       e.currentTarget.blur();
+                                     }
+                                   }}
+                                   className="w-16 text-right bg-white border border-slate-300 hover:border-amber-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-slate-700 text-xs py-1 px-1.5 rounded outline-none transition-all cursor-text"
+                                   title="클릭하여 네이버 배송비 수정"
+                                 />
+                                 <span className="text-[11px] text-slate-400 shrink-0">원</span>
+                               </div>
                              </td>
 
                              {/* Naver Total (Yellow highlighted cell style like user's Excel) */}
@@ -1296,7 +1302,7 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                              </td>
 
                              {/* Coupang Seller */}
-                             <td className="py-2 px-1 text-center bg-blue-50/25 text-slate-600 text-xs max-w-[80px]">
+                             <td className="py-2 px-1 text-center bg-blue-50/25 text-slate-600 text-xs max-w-[90px]">
                                <input
                                  key={`coupSeller-${item.id}-${selectedDate}-${item.coupangSeller}`}
                                  type="text"
@@ -1314,71 +1320,77 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                                      e.currentTarget.blur();
                                    }
                                  }}
-                                 className="w-full text-center bg-transparent outline-none border border-transparent hover:border-blue-300 focus:border-blue-500 focus:bg-white text-slate-700 text-xs py-1 px-1 rounded transition-all truncate cursor-text"
+                                 className="w-full text-center bg-white border border-slate-300 hover:border-blue-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-700 text-xs py-1 px-1 rounded outline-none transition-all truncate cursor-text"
                                  title="클릭하여 타판매자 수정"
                                />
                              </td>
 
                              {/* Coupang Sale */}
                              <td className="py-2 px-1 text-right bg-blue-50/25 text-slate-800">
-                               <input
-                                 key={`coupPrice-${item.id}-${selectedDate}-${item.coupangPrice}`}
-                                 type="text"
-                                 defaultValue={item.hasLog && item.coupangPrice > 0 ? item.coupangPrice.toLocaleString() : ""}
-                                 placeholder="-"
-                                 onClick={(e) => e.stopPropagation()}
-                                 onFocus={(e) => {
-                                   if (item.hasLog && item.coupangPrice > 0) e.target.value = item.coupangPrice.toString();
-                                   e.target.select();
-                                 }}
-                                 onBlur={(e) => {
-                                   const rawVal = e.target.value.replace(/,/g, "").trim();
-                                   const numVal = parseInt(rawVal) || 0;
-                                   if (numVal !== (item.hasLog ? item.coupangPrice : 0)) {
-                                     handleUpdateItemLog(item.id, 'coupangPrice', numVal);
-                                   } else {
-                                     e.target.value = item.hasLog && item.coupangPrice > 0 ? item.coupangPrice.toLocaleString() : "";
-                                   }
-                                 }}
-                                 onKeyDown={(e) => {
-                                   if (e.key === 'Enter') {
-                                     e.currentTarget.blur();
-                                   }
-                                 }}
-                                 className="w-full text-right bg-transparent outline-none border border-transparent hover:border-blue-400 focus:border-blue-500 focus:bg-white font-medium text-slate-900 text-xs py-1 px-1 rounded transition-all cursor-text"
-                                 title="클릭하여 쿠팡 판매가 수정 (원)"
-                               />
+                               <div className="flex items-center justify-end gap-1">
+                                 <input
+                                   key={`coupPrice-${item.id}-${selectedDate}-${item.coupangPrice}`}
+                                   type="text"
+                                   defaultValue={item.hasLog && item.coupangPrice > 0 ? item.coupangPrice.toLocaleString() : ""}
+                                   placeholder="0"
+                                   onClick={(e) => e.stopPropagation()}
+                                   onFocus={(e) => {
+                                     if (item.hasLog && item.coupangPrice > 0) e.target.value = item.coupangPrice.toString();
+                                     e.target.select();
+                                   }}
+                                   onBlur={(e) => {
+                                     const rawVal = e.target.value.replace(/,/g, "").trim();
+                                     const numVal = parseInt(rawVal) || 0;
+                                     if (numVal !== (item.hasLog ? item.coupangPrice : 0)) {
+                                       handleUpdateItemLog(item.id, 'coupangPrice', numVal);
+                                     } else {
+                                       e.target.value = item.hasLog && item.coupangPrice > 0 ? item.coupangPrice.toLocaleString() : "";
+                                     }
+                                   }}
+                                   onKeyDown={(e) => {
+                                     if (e.key === 'Enter') {
+                                       e.currentTarget.blur();
+                                     }
+                                   }}
+                                   className="w-20 text-right bg-white border border-slate-300 hover:border-blue-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-semibold text-slate-900 text-xs py-1 px-1.5 rounded outline-none transition-all cursor-text"
+                                   title="클릭하여 쿠팡 판매가 수정"
+                                 />
+                                 <span className="text-[11px] text-slate-400 shrink-0">원</span>
+                               </div>
                              </td>
 
                              {/* Coupang Ship */}
                              <td className="py-2 px-1 text-right bg-blue-50/25 text-slate-500 text-xs">
-                               <input
-                                 key={`coupShip-${item.id}-${selectedDate}-${item.coupangShipping}`}
-                                 type="text"
-                                 defaultValue={item.hasLog && item.coupangPrice > 0 ? (item.coupangShipping === 0 ? "0" : item.coupangShipping.toLocaleString()) : ""}
-                                 placeholder="-"
-                                 onClick={(e) => e.stopPropagation()}
-                                 onFocus={(e) => {
-                                   e.target.value = item.coupangShipping.toString();
-                                   e.target.select();
-                                 }}
-                                 onBlur={(e) => {
-                                   const rawVal = e.target.value.replace(/,/g, "").trim();
-                                   const numVal = parseInt(rawVal) || 0;
-                                   if (numVal !== item.coupangShipping) {
-                                     handleUpdateItemLog(item.id, 'coupangShipping', numVal);
-                                   } else {
-                                     e.target.value = item.hasLog && item.coupangPrice > 0 ? (item.coupangShipping === 0 ? "0" : item.coupangShipping.toLocaleString()) : "";
-                                   }
-                                 }}
-                                 onKeyDown={(e) => {
-                                   if (e.key === 'Enter') {
-                                     e.currentTarget.blur();
-                                   }
-                                 }}
-                                 className="w-full text-right bg-transparent outline-none border border-transparent hover:border-blue-400 focus:border-blue-500 focus:bg-white text-slate-700 text-xs py-1 px-1 rounded transition-all cursor-text"
-                                 title="클릭하여 쿠팡 배송비 수정 (원)"
-                               />
+                               <div className="flex items-center justify-end gap-1">
+                                 <input
+                                   key={`coupShip-${item.id}-${selectedDate}-${item.coupangShipping}`}
+                                   type="text"
+                                   defaultValue={item.hasLog && item.coupangPrice > 0 ? (item.coupangShipping === 0 ? "0" : item.coupangShipping.toLocaleString()) : ""}
+                                   placeholder="0"
+                                   onClick={(e) => e.stopPropagation()}
+                                   onFocus={(e) => {
+                                     e.target.value = item.coupangShipping.toString();
+                                     e.target.select();
+                                   }}
+                                   onBlur={(e) => {
+                                     const rawVal = e.target.value.replace(/,/g, "").trim();
+                                     const numVal = parseInt(rawVal) || 0;
+                                     if (numVal !== item.coupangShipping) {
+                                       handleUpdateItemLog(item.id, 'coupangShipping', numVal);
+                                     } else {
+                                       e.target.value = item.hasLog && item.coupangPrice > 0 ? (item.coupangShipping === 0 ? "0" : item.coupangShipping.toLocaleString()) : "";
+                                     }
+                                   }}
+                                   onKeyDown={(e) => {
+                                     if (e.key === 'Enter') {
+                                       e.currentTarget.blur();
+                                     }
+                                   }}
+                                   className="w-16 text-right bg-white border border-slate-300 hover:border-blue-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-700 text-xs py-1 px-1.5 rounded outline-none transition-all cursor-text"
+                                   title="클릭하여 쿠팡 배송비 수정"
+                                 />
+                                 <span className="text-[11px] text-slate-400 shrink-0">원</span>
+                               </div>
                              </td>
 
                             {/* Coupang Total (Blue highlighted cell style like user's Excel) */}
