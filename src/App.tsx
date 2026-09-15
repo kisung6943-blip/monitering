@@ -500,6 +500,66 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
     showToast("가격 모니터링 로그가 저장되었습니다.");
   };
 
+  // Handle direct table inline editing for price, shipping, seller
+  const handleUpdateItemLog = (
+    productId: string,
+    field: 'naverPrice' | 'naverShipping' | 'coupangPrice' | 'coupangShipping' | 'coupangSeller',
+    val: number | string
+  ) => {
+    const currentItem = currentLogsForDate.find(l => l.id === productId);
+
+    let navPrice = field === 'naverPrice' ? Number(val) || 0 : (currentItem?.naverPrice || 0);
+    let navShip = field === 'naverShipping' ? Number(val) || 0 : (currentItem?.naverShipping || 0);
+    let coupPrice = field === 'coupangPrice' ? Number(val) || 0 : (currentItem?.coupangPrice || 0);
+    let coupShip = field === 'coupangShipping' ? Number(val) || 0 : (currentItem?.coupangShipping || 0);
+    let coupSeller = field === 'coupangSeller' ? String(val) : (currentItem?.coupangSeller || "");
+
+    const naverTotal = navPrice > 0 ? (navPrice + navShip) : 0;
+    const coupangTotal = coupPrice > 0 ? (coupPrice + coupShip) : 0;
+    const difference = naverTotal - coupangTotal;
+
+    const existingLogIndex = priceLogs.findIndex(
+      (log) => log.productId === productId && log.date === selectedDate
+    );
+
+    const updatedLogs = [...priceLogs];
+    const existingLog = existingLogIndex >= 0 ? priceLogs[existingLogIndex] : null;
+
+    const newLog: PriceLog = {
+      id: existingLog?.id || `log-${productId}-${selectedDate}`,
+      date: selectedDate,
+      productId: productId,
+      naverPrice: navPrice,
+      naverShipping: navShip,
+      naverTotal,
+      coupangSeller: coupSeller.trim(),
+      coupangPrice: coupPrice,
+      coupangShipping: coupShip,
+      coupangTotal,
+      difference,
+      keywordRanks: existingLog?.keywordRanks || Array(6).fill(""),
+      coupangKeywordRanks: existingLog?.coupangKeywordRanks || Array(6).fill(""),
+      memo: existingLog?.memo || getSavedMemos()[`${productId}_${selectedDate}`] || "",
+    };
+
+    if (existingLogIndex >= 0) {
+      updatedLogs[existingLogIndex] = newLog;
+    } else {
+      updatedLogs.push(newLog);
+    }
+
+    if (productId === selectedProductId) {
+      setEditNaverPrice(navPrice === 0 ? "" : navPrice.toString());
+      setEditNaverShipping(navShip === 0 ? "" : navShip.toString());
+      setEditCoupangPrice(coupPrice === 0 ? "" : coupPrice.toString());
+      setEditCoupangShipping(coupShip === 0 ? "" : coupShip.toString());
+      setEditCoupangSeller(coupSeller);
+    }
+
+    saveToLocalStorage(products, updatedLogs);
+    showToast("가격 정보가 수정되었습니다.");
+  };
+
   const handleKeywordNameChange = (productId: string, index: number, value: string) => {
     const updatedProducts = products.map(p => {
       if (p.id === productId) {
@@ -1163,40 +1223,163 @@ Return ONLY a valid JSON string (no markdown formatting, no \`\`\`json) with exa
                               </div>
                             </td>
 
-                            {/* Naver Sale */}
-                            <td className="py-3 px-3 text-right bg-amber-50/20 text-slate-800">
-                              {item.hasLog && item.naverPrice > 0 ? `${item.naverPrice.toLocaleString()}원` : "-"}
-                            </td>
+                             {/* Naver Sale */}
+                             <td className="py-2 px-1 text-right bg-amber-50/20 text-slate-800">
+                               <input
+                                 key={`navPrice-${item.id}-${selectedDate}-${item.naverPrice}`}
+                                 type="text"
+                                 defaultValue={item.hasLog && item.naverPrice > 0 ? item.naverPrice.toLocaleString() : ""}
+                                 placeholder="-"
+                                 onClick={(e) => e.stopPropagation()}
+                                 onFocus={(e) => {
+                                   if (item.hasLog && item.naverPrice > 0) e.target.value = item.naverPrice.toString();
+                                   e.target.select();
+                                 }}
+                                 onBlur={(e) => {
+                                   const rawVal = e.target.value.replace(/,/g, "").trim();
+                                   const numVal = parseInt(rawVal) || 0;
+                                   if (numVal !== (item.hasLog ? item.naverPrice : 0)) {
+                                     handleUpdateItemLog(item.id, 'naverPrice', numVal);
+                                   } else {
+                                     e.target.value = item.hasLog && item.naverPrice > 0 ? item.naverPrice.toLocaleString() : "";
+                                   }
+                                 }}
+                                 onKeyDown={(e) => {
+                                   if (e.key === 'Enter') {
+                                     e.currentTarget.blur();
+                                   }
+                                 }}
+                                 className="w-full text-right bg-transparent outline-none border border-transparent hover:border-amber-400 focus:border-amber-500 focus:bg-white font-medium text-slate-900 text-xs py-1 px-1 rounded transition-all cursor-text"
+                                 title="클릭하여 네이버 판매가 수정 (원)"
+                               />
+                             </td>
 
-                            {/* Naver Ship */}
-                            <td className="py-3 px-3 text-right bg-amber-50/20 text-slate-500 text-xs">
-                              {item.hasLog && item.naverPrice > 0 ? (item.naverShipping === 0 ? "무료" : `${item.naverShipping.toLocaleString()}원`) : "-"}
-                            </td>
+                             {/* Naver Ship */}
+                             <td className="py-2 px-1 text-right bg-amber-50/20 text-slate-500 text-xs">
+                               <input
+                                 key={`navShip-${item.id}-${selectedDate}-${item.naverShipping}`}
+                                 type="text"
+                                 defaultValue={item.hasLog && item.naverPrice > 0 ? (item.naverShipping === 0 ? "0" : item.naverShipping.toLocaleString()) : ""}
+                                 placeholder="-"
+                                 onClick={(e) => e.stopPropagation()}
+                                 onFocus={(e) => {
+                                   e.target.value = item.naverShipping.toString();
+                                   e.target.select();
+                                 }}
+                                 onBlur={(e) => {
+                                   const rawVal = e.target.value.replace(/,/g, "").trim();
+                                   const numVal = parseInt(rawVal) || 0;
+                                   if (numVal !== item.naverShipping) {
+                                     handleUpdateItemLog(item.id, 'naverShipping', numVal);
+                                   } else {
+                                     e.target.value = item.hasLog && item.naverPrice > 0 ? (item.naverShipping === 0 ? "0" : item.naverShipping.toLocaleString()) : "";
+                                   }
+                                 }}
+                                 onKeyDown={(e) => {
+                                   if (e.key === 'Enter') {
+                                     e.currentTarget.blur();
+                                   }
+                                 }}
+                                 className="w-full text-right bg-transparent outline-none border border-transparent hover:border-amber-400 focus:border-amber-500 focus:bg-white text-slate-700 text-xs py-1 px-1 rounded transition-all cursor-text"
+                                 title="클릭하여 네이버 배송비 수정 (원)"
+                               />
+                             </td>
 
-                            {/* Naver Total (Yellow highlighted cell style like user's Excel) */}
-                            <td 
-                              className={`py-3 px-3 text-right font-semibold border-r border-slate-100 transition-all ${
-                                isNaverCheaper ? "bg-amber-100 text-amber-950 ring-2 ring-emerald-500 ring-inset" : "bg-amber-50 text-slate-900"
-                              }`}
-                              style={!isNaverCheaper ? { backgroundColor: "#FFF9E6" } : undefined}
-                            >
-                              {item.hasLog && item.naverTotal > 0 ? `${item.naverTotal.toLocaleString()}원` : "-"}
-                            </td>
+                             {/* Naver Total (Yellow highlighted cell style like user's Excel) */}
+                             <td 
+                               className={`py-3 px-3 text-right font-semibold border-r border-slate-100 transition-all ${
+                                 isNaverCheaper ? "bg-amber-100 text-amber-950 ring-2 ring-emerald-500 ring-inset" : "bg-amber-50 text-slate-900"
+                               }`}
+                               style={!isNaverCheaper ? { backgroundColor: "#FFF9E6" } : undefined}
+                             >
+                               {item.hasLog && item.naverTotal > 0 ? `${item.naverTotal.toLocaleString()}원` : "-"}
+                             </td>
 
-                            {/* Coupang Seller */}
-                            <td className="py-3 px-3 text-center bg-blue-50/25 text-slate-600 text-xs max-w-[80px] truncate">
-                              {item.hasLog ? item.coupangSeller || "-" : "-"}
-                            </td>
+                             {/* Coupang Seller */}
+                             <td className="py-2 px-1 text-center bg-blue-50/25 text-slate-600 text-xs max-w-[80px]">
+                               <input
+                                 key={`coupSeller-${item.id}-${selectedDate}-${item.coupangSeller}`}
+                                 type="text"
+                                 defaultValue={item.hasLog ? item.coupangSeller || "" : ""}
+                                 placeholder="-"
+                                 onClick={(e) => e.stopPropagation()}
+                                 onBlur={(e) => {
+                                   const newSeller = e.target.value.trim();
+                                   if (newSeller !== (item.coupangSeller || "")) {
+                                     handleUpdateItemLog(item.id, 'coupangSeller', newSeller);
+                                   }
+                                 }}
+                                 onKeyDown={(e) => {
+                                   if (e.key === 'Enter') {
+                                     e.currentTarget.blur();
+                                   }
+                                 }}
+                                 className="w-full text-center bg-transparent outline-none border border-transparent hover:border-blue-300 focus:border-blue-500 focus:bg-white text-slate-700 text-xs py-1 px-1 rounded transition-all truncate cursor-text"
+                                 title="클릭하여 타판매자 수정"
+                               />
+                             </td>
 
-                            {/* Coupang Sale */}
-                            <td className="py-3 px-3 text-right bg-blue-50/25 text-slate-800">
-                              {item.hasLog && item.coupangPrice > 0 ? `${item.coupangPrice.toLocaleString()}원` : "-"}
-                            </td>
+                             {/* Coupang Sale */}
+                             <td className="py-2 px-1 text-right bg-blue-50/25 text-slate-800">
+                               <input
+                                 key={`coupPrice-${item.id}-${selectedDate}-${item.coupangPrice}`}
+                                 type="text"
+                                 defaultValue={item.hasLog && item.coupangPrice > 0 ? item.coupangPrice.toLocaleString() : ""}
+                                 placeholder="-"
+                                 onClick={(e) => e.stopPropagation()}
+                                 onFocus={(e) => {
+                                   if (item.hasLog && item.coupangPrice > 0) e.target.value = item.coupangPrice.toString();
+                                   e.target.select();
+                                 }}
+                                 onBlur={(e) => {
+                                   const rawVal = e.target.value.replace(/,/g, "").trim();
+                                   const numVal = parseInt(rawVal) || 0;
+                                   if (numVal !== (item.hasLog ? item.coupangPrice : 0)) {
+                                     handleUpdateItemLog(item.id, 'coupangPrice', numVal);
+                                   } else {
+                                     e.target.value = item.hasLog && item.coupangPrice > 0 ? item.coupangPrice.toLocaleString() : "";
+                                   }
+                                 }}
+                                 onKeyDown={(e) => {
+                                   if (e.key === 'Enter') {
+                                     e.currentTarget.blur();
+                                   }
+                                 }}
+                                 className="w-full text-right bg-transparent outline-none border border-transparent hover:border-blue-400 focus:border-blue-500 focus:bg-white font-medium text-slate-900 text-xs py-1 px-1 rounded transition-all cursor-text"
+                                 title="클릭하여 쿠팡 판매가 수정 (원)"
+                               />
+                             </td>
 
-                            {/* Coupang Ship */}
-                            <td className="py-3 px-3 text-right bg-blue-50/25 text-slate-500 text-xs">
-                              {item.hasLog && item.coupangPrice > 0 ? (item.coupangShipping === 0 ? "무료" : `${item.coupangShipping.toLocaleString()}원`) : "-"}
-                            </td>
+                             {/* Coupang Ship */}
+                             <td className="py-2 px-1 text-right bg-blue-50/25 text-slate-500 text-xs">
+                               <input
+                                 key={`coupShip-${item.id}-${selectedDate}-${item.coupangShipping}`}
+                                 type="text"
+                                 defaultValue={item.hasLog && item.coupangPrice > 0 ? (item.coupangShipping === 0 ? "0" : item.coupangShipping.toLocaleString()) : ""}
+                                 placeholder="-"
+                                 onClick={(e) => e.stopPropagation()}
+                                 onFocus={(e) => {
+                                   e.target.value = item.coupangShipping.toString();
+                                   e.target.select();
+                                 }}
+                                 onBlur={(e) => {
+                                   const rawVal = e.target.value.replace(/,/g, "").trim();
+                                   const numVal = parseInt(rawVal) || 0;
+                                   if (numVal !== item.coupangShipping) {
+                                     handleUpdateItemLog(item.id, 'coupangShipping', numVal);
+                                   } else {
+                                     e.target.value = item.hasLog && item.coupangPrice > 0 ? (item.coupangShipping === 0 ? "0" : item.coupangShipping.toLocaleString()) : "";
+                                   }
+                                 }}
+                                 onKeyDown={(e) => {
+                                   if (e.key === 'Enter') {
+                                     e.currentTarget.blur();
+                                   }
+                                 }}
+                                 className="w-full text-right bg-transparent outline-none border border-transparent hover:border-blue-400 focus:border-blue-500 focus:bg-white text-slate-700 text-xs py-1 px-1 rounded transition-all cursor-text"
+                                 title="클릭하여 쿠팡 배송비 수정 (원)"
+                               />
+                             </td>
 
                             {/* Coupang Total (Blue highlighted cell style like user's Excel) */}
                             <td 
